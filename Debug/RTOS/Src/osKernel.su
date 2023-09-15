@@ -1,0 +1,10 @@
+../Drivers/CMSIS/Include/core_cm4.h:1688:22:__NVIC_EnableIRQ	16	static
+../Drivers/CMSIS/Include/core_cm4.h:1724:22:__NVIC_DisableIRQ	16	static,ignoring_inline_asm
+../Drivers/CMSIS/Include/core_cm4.h:1816:22:__NVIC_SetPriority	16	static
+../Drivers/CMSIS/Include/core_cm4.h:2022:26:SysTick_Config	16	static
+../RTOS/Src/osKernel.c:39:6:osTaskCreate	16	static
+../RTOS/Src/osKernel.c:75:6:osStart	8	static
+../RTOS/Src/osKernel.c:108:17:getNextContext	16	static
+../RTOS/Src/osKernel.c:135:13:scheduler	16	static
+../RTOS/Src/osKernel.c:159:6:SysTick_Handler	8	static,ignoring_inline_asm
+../RTOS/Src/osKernel.c:181:30:PendSV_Handler	0	static,ignoring_inline_asm
