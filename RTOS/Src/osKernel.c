@@ -3,8 +3,8 @@
  *
  *  Created on: Sep 15, 2023
  *      Author: cesarcruz
+ *      Basado : En el repositorio ISO-I MSE-LSE
  */
-
 
 #include <stddef.h>
 
@@ -19,11 +19,11 @@
 
 typedef struct
 {
-    osTaskObject*   listTask[MAX_NUMBER_TASK];                              // Task list.
-    osTaskObject*   currentTask;                                            // Current handler task running.
-    osTaskObject*   nextTask;                                               // Next handler task will be run.
-    uint8_t         countTask;                                              // Number of task created.
-    bool            running;                                                // Status task, if it is running true in otherwise false.
+    osTaskObject*   listTask[MAX_NUMBER_TASK];                              // Lista de tareas.
+    osTaskObject*   currentTask;                                            // Tarea actual en ejecución.
+    osTaskObject*   nextTask;                                               // Próxima tarea a ejecutarse.
+    uint8_t         countTask;                                              // Número de tareas creadas.
+    bool            running;                                                // Estado de la tarea, verdadero si está en ejecución, falso en caso contrario.
 }osKernelObject;
 
 /* ================== Private variables declaration ================= */
@@ -199,6 +199,6 @@ __attribute__ ((naked)) void PendSV_Handler(void)
     __ASM volatile ("msr msp, r0");
     __ASM volatile ("pop {r4-r11, lr}");    //Recuperados todos los valores de registros
 
-    /* Se hace un branch indirect con el valor de LR que es nuevamente EXEC_RETURN */
-    __ASM volatile ("bx lr");
-}
+     /* Se hace un branch indirecto con el valor de LR que es nuevamente EXEC_RETURN */
+     __ASM volatile ("bx lr");
+ }

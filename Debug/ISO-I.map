@@ -3211,7 +3211,7 @@ LOAD /Applications/STM32CubeIDE.app/Contents/Eclipse/plugins/com.st.stm32cube.id
  .debug_macro   0x0000000000021d68      0x1bb ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o
  .debug_macro   0x0000000000021f23       0xf2 ./RTOS/Src/osKernel.o
 
-.debug_line     0x0000000000000000     0x8c3e
+.debug_line     0x0000000000000000     0x8c40
  .debug_line    0x0000000000000000      0x74c ./Core/Src/gpio.o
  .debug_line    0x000000000000074c      0x7f6 ./Core/Src/main.o
  .debug_line    0x0000000000000f42      0x6be ./Core/Src/stm32f4xx_hal_msp.o
@@ -3224,7 +3224,7 @@ LOAD /Applications/STM32CubeIDE.app/Contents/Eclipse/plugins/com.st.stm32cube.id
  .debug_line    0x0000000000004277      0xb42 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.o
  .debug_line    0x0000000000004db9      0xd22 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.o
  .debug_line    0x0000000000005adb     0x2a4b ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o
- .debug_line    0x0000000000008526      0x718 ./RTOS/Src/osKernel.o
+ .debug_line    0x0000000000008526      0x71a ./RTOS/Src/osKernel.o
 
 .debug_str      0x0000000000000000    0xcde3b
  .debug_str     0x0000000000000000    0xcb9c7 ./Core/Src/gpio.o

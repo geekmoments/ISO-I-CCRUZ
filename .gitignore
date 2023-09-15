@@ -1,0 +1,38 @@
+# Archivos binarios y generados
+*.elf
+*.bin
+*.hex
+*.map
+*.out
+Debug/
+Release/
+*.ioc
+
+# Archivos temporales y caché
+*.d
+*.o
+*.obj
+*.tmp
+*.log
+
+# Archivos de construcción y configuración del IDE
+.project
+.cproject
+.settings/
+.metadata/
+
+# Archivos de usuario locales (ajusta según sea necesario)
+.idea/
+venv/
+
+# Archivos y carpetas de dependencias de terceros
+Middlewares/
+Drivers/
+Lib/
+HAL/
+
+# Archivos de salida específicos del sistema operativo (ajusta según sea necesario)
+.vscode/
+Thumbs.db
+.DS_Store
+
