@@ -6,9 +6,10 @@
  *      Basado : En el repositorio ISO-I MSE-LSE
  */
 
+#include "../../OS/Inc/osKernel.h"
+
 #include <stddef.h>
 
-#include "osKernel.h"
 #include "system_stm32f4xx.h"
 #include "stm32f429xx.h"
 #include "core_cm4.h"
@@ -27,13 +28,21 @@ typedef struct
 }osKernelObject;
 
 /* ================== Private variables declaration ================= */
-static osKernelObject osKernel = { 0 };
+static osKernelObject osKernel = {
+		.listTask	= {NULL},
+		.currentTask= NULL,
+		.nextTask 	= NULL,
+		.countTask 	= 0,
+		.running 	=false
+
+};
 
 /* ================== Private functions declaration ================= */
 
 static uint32_t getNextContext(uint32_t currentStaskPointer);
 static void scheduler(void);
-
+static void initializeTask(osTaskObject* handler, void* callback);  //--AQUI--
+static void configureInterrupts(void);  //--AQUI--
 /* ================= Public functions implementation ================ */
 
 bool osTaskCreate(osTaskObject* handler, void* callback)
@@ -42,23 +51,19 @@ bool osTaskCreate(osTaskObject* handler, void* callback)
     {
         return false;
     }
+    initializeTask(handler, callback);//--AQUI--
 
+/*
     // xPSR value with 24 bit on one (Thumb mode).
-    handler->memory[MAX_STACK_SIZE/4 - XPSR_REG_POSITION]   = XPSR_VALUE;
-    // Program pointer (PC) points to function used by the task.
-    handler->memory[MAX_STACK_SIZE/4 - PC_REG_POSTION]      = (uint32_t)callback;
-
-    /*
-     * Previous Link register (LR) value because handler pendSV call function inside exception
-     * and LR is overwrite with the return value of getNextContext.
-     */
-    handler->memory[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE;
+    handler->memoryStack[MAX_STACK_SIZE/4 - XPSR_REG_POSITION]   = XPSR_VALUE;
+    handler->memoryStack[MAX_STACK_SIZE/4 - PC_REG_POSTION]      = (uint32_t)callback;
+    handler->memoryStack[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE;
 
     // Pointer function of task.
     handler->entryPoint     = callback;
     handler->id             = osKernel.countTask;
-    handler->stackPointer   = (uint32_t)(handler->memory + MAX_STACK_SIZE/4 - SIZE_STACK_FRAME);
-
+    handler->stackPointer   = (uint32_t)(handler->memoryStack + MAX_STACK_SIZE/4 - SIZE_STACK_FRAME);
+*/
     // Fill controls OS structure
     osKernel.listTask[osKernel.countTask] = handler;
     osKernel.countTask++;
@@ -74,23 +79,19 @@ bool osTaskCreate(osTaskObject* handler, void* callback)
 
 void osStart(void)
 {
-    NVIC_DisableIRQ(SysTick_IRQn);
-    NVIC_DisableIRQ(PendSV_IRQn);
+	 /*
+	     * All interrupts has priority 0 (maximum) at start execution. For that don't happen fault
+	     * condition, we have to less priotity of NVIC. This math calculation showing take lowest
+	     * priority possible.
+	     * Activate and configure the time of Systick exception
+	     *
+	     */
+	configureInterrupts();
 
     osKernel.running = false;
     osKernel.currentTask = NULL;
     osKernel.nextTask = NULL;
 
-    /*
-     * All interrupts has priority 0 (maximum) at start execution. For that don't happen fault
-     * condition, we have to less priotity of NVIC. This math calculation showing take lowest
-     * priority possible.
-     */
-    NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS)-1);
-
-    /* Activate and configure the time of Systick exception */
-    SystemCoreClockUpdate();
-    SysTick_Config(SystemCoreClock / (1000U * SYSTICK_PERIOD_MS));
 
     NVIC_EnableIRQ(PendSV_IRQn);
     NVIC_EnableIRQ(SysTick_IRQn);
@@ -153,7 +154,27 @@ static void scheduler(void)
         osKernel.nextTask = osKernel.listTask[index];
     }
 }
+static void initializeTask(osTaskObject* handler, void* callback)
+{
+    handler->memoryStack[MAX_STACK_SIZE/4 - XPSR_REG_POSITION] = XPSR_VALUE;
+    handler->memoryStack[MAX_STACK_SIZE/4 - PC_REG_POSTION] = (uint32_t)callback;
+    handler->memoryStack[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE;
 
+    handler->entryPoint = callback;
+    handler->id = osKernel.countTask;
+    handler->stackPointer = (uint32_t)(handler->memoryStack + MAX_STACK_SIZE/4 - SIZE_STACK_FRAME);
+}
+
+static void configureInterrupts(void)
+{
+    NVIC_DisableIRQ(SysTick_IRQn);
+    NVIC_DisableIRQ(PendSV_IRQn);
+
+    NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
+
+    SystemCoreClockUpdate();
+    SysTick_Config(SystemCoreClock / (1000U * SYSTICK_PERIOD_MS));
+}
 /* ========== Processor Interruption and Exception Handlers ========= */
 
 void SysTick_Handler(void)

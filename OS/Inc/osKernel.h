@@ -42,7 +42,7 @@ typedef enum
 
 typedef struct
 {
-    uint32_t            memory[MAX_STACK_SIZE/4];   // Memory stack
+    uint32_t            memoryStack[MAX_STACK_SIZE/4];   // Memory stack
     uint32_t            stackPointer;               // Stack pointer of task
     void*               entryPoint;                 // Callback executed on task
     uint8_t             id;                         // Task ID, it is a number started in 0
