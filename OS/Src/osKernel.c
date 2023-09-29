@@ -51,19 +51,11 @@ bool osTaskCreate(osTaskObject* handler, void* callback)
     {
         return false;
     }
-    initializeTask(handler, callback);//--AQUI--
-
-/*
     // xPSR value with 24 bit on one (Thumb mode).
-    handler->memoryStack[MAX_STACK_SIZE/4 - XPSR_REG_POSITION]   = XPSR_VALUE;
-    handler->memoryStack[MAX_STACK_SIZE/4 - PC_REG_POSTION]      = (uint32_t)callback;
-    handler->memoryStack[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE;
-
     // Pointer function of task.
-    handler->entryPoint     = callback;
-    handler->id             = osKernel.countTask;
-    handler->stackPointer   = (uint32_t)(handler->memoryStack + MAX_STACK_SIZE/4 - SIZE_STACK_FRAME);
-*/
+
+    initializeTask(handler, callback);
+
     // Fill controls OS structure
     osKernel.listTask[osKernel.countTask] = handler;
     osKernel.countTask++;
@@ -111,18 +103,18 @@ static uint32_t getNextContext(uint32_t currentStaskPointer)
      // Is the first time execute operating system? Yes, so will do task charged on next task.
     if (!osKernel.running)
     {
-        osKernel.currentTask->status    = OS_TASK_RUNNING;
+        osKernel.currentTask->taskStatus    = OS_TASK_RUNNING;
         osKernel.running                = true;
     }
     else
     {
         // Storage last stack pointer used on current task and change state to ready.
         osKernel.currentTask->stackPointer  = currentStaskPointer;
-        osKernel.currentTask->status        = OS_TASK_READY;
+        osKernel.currentTask->taskStatus        = OS_TASK_READY;
 
         // Switch address memory points on current task for next task and change state of task
         osKernel.currentTask            = osKernel.nextTask;
-        osKernel.currentTask->status    = OS_TASK_RUNNING;
+        osKernel.currentTask->taskStatus    = OS_TASK_RUNNING;
     }
 
     return osKernel.currentTask->stackPointer;
@@ -143,7 +135,7 @@ static void scheduler(void)
     }
     else
     {
-        index = osKernel.currentTask->id + 1;
+        index = osKernel.currentTask->taskId + 1;
 
         // If is the last task so I start againt with first.
         if (index >= MAX_NUMBER_TASK || NULL == osKernel.listTask[index])
@@ -161,7 +153,7 @@ static void initializeTask(osTaskObject* handler, void* callback)
     handler->memoryStack[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE;
 
     handler->entryPoint = callback;
-    handler->id = osKernel.countTask;
+    handler->taskId = osKernel.countTask;
     handler->stackPointer = (uint32_t)(handler->memoryStack + MAX_STACK_SIZE/4 - SIZE_STACK_FRAME);
 }
 

@@ -34,10 +34,10 @@
 /* Possible task status */
 typedef enum
 {
-    OS_TASK_READY,      // Ready state
-    OS_TASK_RUNNING,    // Running state
-    OS_TASK_BLOCK,      // Blocked state
-    OS_TASK_SUSPEND     // Suspended state
+    OS_TASK_READY,      // 0Ready state
+    OS_TASK_RUNNING,    // 1Running state
+    OS_TASK_BLOCK,      // 2Blocked state
+    OS_TASK_SUSPEND     // 3Suspended state
 }osTaskStatusType;
 
 typedef struct
@@ -45,8 +45,8 @@ typedef struct
     uint32_t            memoryStack[MAX_STACK_SIZE/4];   // Memory stack
     uint32_t            stackPointer;               // Stack pointer of task
     void*               entryPoint;                 // Callback executed on task
-    uint8_t             id;                         // Task ID, it is a number started in 0
-    osTaskStatusType    status;                     // Status task.
+    uint8_t             taskId;                         // Task ID, it is a number started in 0
+    osTaskStatusType    taskStatus;                     // Status task.
 }osTaskObject;
 
 
