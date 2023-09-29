@@ -31,23 +31,23 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY
  13 .comment      00000043  00000000  00000000  0002003c  2**0
                   CONTENTS, READONLY
- 14 .debug_info   0000a159  00000000  00000000  0002007f  2**0
+ 14 .debug_info   0000a183  00000000  00000000  0002007f  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_abbrev 00001ce9  00000000  00000000  0002a1d8  2**0
+ 15 .debug_abbrev 00001d04  00000000  00000000  0002a202  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_aranges 00000a80  00000000  00000000  0002bec8  2**3
+ 16 .debug_aranges 00000a88  00000000  00000000  0002bf08  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_rnglists 00000805  00000000  00000000  0002c948  2**0
+ 17 .debug_rnglists 0000080b  00000000  00000000  0002c990  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_macro  00022ad4  00000000  00000000  0002d14d  2**0
+ 18 .debug_macro  00022ad4  00000000  00000000  0002d19b  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_line   0000bb9f  00000000  00000000  0004fc21  2**0
+ 19 .debug_line   0000bbb4  00000000  00000000  0004fc6f  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 20 .debug_str    000d4196  00000000  00000000  0005b7c0  2**0
+ 20 .debug_str    000d41a3  00000000  00000000  0005b823  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_frame  00002a68  00000000  00000000  0012f958  2**2
+ 21 .debug_frame  00002a90  00000000  00000000  0012f9c8  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 22 .debug_line_str 00000063  00000000  00000000  001323c0  2**0
+ 22 .debug_line_str 00000063  00000000  00000000  00132458  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -5652,6 +5652,7 @@ void osStart(void)
  80022e8:	f000 f8e6 	bl	80024b8 <configureInterrupts>
 	initIdleTask();
  80022ec:	f000 f816 	bl	800231c <initIdleTask>
+
     osKernel.running = false;
  80022f0:	4b09      	ldr	r3, [pc, #36]	; (8002318 <osStart+0x34>)
  80022f2:	2200      	movs	r2, #0
@@ -5732,8 +5733,10 @@ __attribute__((weak)) void osIdleTask(void)
  800237c:	b480      	push	{r7}
  800237e:	af00      	add	r7, sp, #0
     while(1)
- 8002380:	e7fe      	b.n	8002380 <osIdleTask+0x4>
-	...
+    {
+    	__WFI();
+ 8002380:	bf30      	wfi
+ 8002382:	e7fd      	b.n	8002380 <osIdleTask+0x4>
 
 08002384 <getNextContext>:
  * @param[in] currentStaskPointer Stack pointer of current task.

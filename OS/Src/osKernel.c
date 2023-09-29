@@ -41,6 +41,7 @@ osTaskObject idleTask; // idle task object
 
 
 /* ================== Private functions declaration ================= */
+void osDelay(const uint32_t tick);
 static void initIdleTask(void);
 static uint32_t getNextContext(uint32_t currentStaskPointer);
 static void scheduler(void);
@@ -83,6 +84,7 @@ void osStart(void)
 	     */
 	configureInterrupts();
 	initIdleTask();
+
     osKernel.running = false;
     osKernel.currentTask = NULL;
     osKernel.nextTask = NULL;
@@ -108,10 +110,14 @@ __attribute__((weak)) void osIdleTask(void)
 {
     while(1)
     {
+    	__WFI();
     }
 }
 /* ================ Private functions implementation ================ */
-
+void osDelay(const uint32_t tick)
+{
+    (void)tick;
+}
 /**
  * @brief Get next context task.
  *
