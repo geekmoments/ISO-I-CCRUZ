@@ -59,8 +59,8 @@ typedef struct
     OsTaskPriorityNumber taskPriority;					 //  *
     uint8_t              taskId;                         // Task ID, it is a number started in 0
     osTaskStatusType     taskStatus;                     // Status task.
-    // uint32_t Delay
-    // taskName
+    uint32_t			 tickCounter;
+
 }osTaskObject;
 
 

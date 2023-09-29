@@ -116,7 +116,13 @@ __attribute__((weak)) void osIdleTask(void)
 /* ================ Private functions implementation ================ */
 void osDelay(const uint32_t tick)
 {
-    (void)tick;
+	// algoritmo de cuenta de ticks por decremento
+	if(ticks > 0){
+
+
+	}
+
+    //(void)tick;
 }
 /**
  * @brief Get next context task.
@@ -182,6 +188,7 @@ static void initializeTask(osTaskObject* handler, void* callback,OsTaskPriorityN
     handler->taskPriority = priority;
     handler->entryPoint = callback;
     handler->taskId = osKernel.countTask;
+    handler->tickCounter = 0;
 }
 
 static void configureInterrupts(void)
