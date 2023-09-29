@@ -46,6 +46,8 @@
 osTaskObject osTask1;
 osTaskObject osTask2;
 osTaskObject osTask3;
+osTaskObject osTask4;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -91,12 +93,12 @@ int main(void)
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
 
-  osTaskCreate(&osTask1, task1);
-  osTaskCreate(&osTask2, task2);    /* GPIO Ports Clock Enable */
+  osTaskCreate(&osTask1, task1, PRIORITY_1);
+  osTaskCreate(&osTask2, task2, PRIORITY_0);    /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  osTaskCreate(&osTask3, task3);
+  osTaskCreate(&osTask3, task3,PRIORITY_2);
 
   osStart();
 

@@ -4,11 +4,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define MAX_NUMBER_TASK         8U          // Defines maximum task we could create.
+#define MAX_NUMBER_TASK         8U          // Defines maximum 8 task and idle
 #define MAX_STACK_SIZE          256U        // Defines maximum stack size for a task.
+#define MAX_NUMBER_PRIORITY     4U          // maximum task priority.
+
 #define SYSTICK_PERIOD_MS       1U          // Systick period time in mili-second.
 #define SIZE_STACK_FRAME        17U         // Size stack frame
-
+#define SYSTICK_PERIOD_MS       1U          // Systick period ms
 
 
 #define XPSR_VALUE              1 << 24     // xPSR.T = 1
@@ -40,13 +42,24 @@ typedef enum
     OS_TASK_SUSPEND     // 3Suspended state
 }osTaskStatusType;
 
+typedef enum{
+    PRIORITY_0,   // 0
+    PRIORITY_1,	  // 1
+    PRIORITY_2,	  // 2
+    PRIORITY_3,   // 3
+}OsTaskPriorityNumber;
+
+
 typedef struct
 {
-    uint32_t            memoryStack[MAX_STACK_SIZE/4];   // Memory stack
-    uint32_t            stackPointer;               // Stack pointer of task
-    void*               entryPoint;                 // Callback executed on task
-    uint8_t             taskId;                         // Task ID, it is a number started in 0
-    osTaskStatusType    taskStatus;                     // Status task.
+    uint32_t             memoryStack[MAX_STACK_SIZE/4];   // *
+    uint32_t             stackPointer;               	 //  *
+    void*                entryPoint;                 	 //  *
+    OsTaskPriorityNumber taskPriority;					 //  *
+    uint8_t              taskId;                         // Task ID, it is a number started in 0
+    osTaskStatusType     taskStatus;                     // Status task.
+    // uint32_t Delay
+    // taskName
 }osTaskObject;
 
 
@@ -58,7 +71,7 @@ typedef struct
  *
  * @return Return true if task was success or false in otherwise.
  */
-bool osTaskCreate(osTaskObject* handler, void* callback);
+bool osTaskCreate(osTaskObject* handler, void* callback, OsTaskPriorityNumber priority);
 
 /**
  * @brief Initialization pendSV exception with lowest priority possible.

@@ -41,11 +41,11 @@ static osKernelObject osKernel = {
 
 static uint32_t getNextContext(uint32_t currentStaskPointer);
 static void scheduler(void);
-static void initializeTask(osTaskObject* handler, void* callback);  //--AQUI--
+static void initializeTask(osTaskObject* handler, void* callback, OsTaskPriorityNumber priority);  // adding prioriry
 static void configureInterrupts(void);  //--AQUI--
 /* ================= Public functions implementation ================ */
 
-bool osTaskCreate(osTaskObject* handler, void* callback)
+bool osTaskCreate(osTaskObject* handler, void* callback, OsTaskPriorityNumber priority)
 {
     if (osKernel.countTask >= MAX_NUMBER_TASK)
     {
@@ -54,7 +54,7 @@ bool osTaskCreate(osTaskObject* handler, void* callback)
     // xPSR value with 24 bit on one (Thumb mode).
     // Pointer function of task.
 
-    initializeTask(handler, callback);
+    initializeTask(handler, callback,priority);
 
     // Fill controls OS structure
     osKernel.listTask[osKernel.countTask] = handler;
@@ -146,15 +146,15 @@ static void scheduler(void)
         osKernel.nextTask = osKernel.listTask[index];
     }
 }
-static void initializeTask(osTaskObject* handler, void* callback)
+static void initializeTask(osTaskObject* handler, void* callback,OsTaskPriorityNumber priority)
 {
     handler->memoryStack[MAX_STACK_SIZE/4 - XPSR_REG_POSITION] = XPSR_VALUE;
     handler->memoryStack[MAX_STACK_SIZE/4 - PC_REG_POSTION] = (uint32_t)callback;
     handler->memoryStack[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE;
-
+    handler->stackPointer = (uint32_t)(handler->memoryStack + MAX_STACK_SIZE/4 - SIZE_STACK_FRAME);
+    handler->taskPriority = priority;
     handler->entryPoint = callback;
     handler->taskId = osKernel.countTask;
-    handler->stackPointer = (uint32_t)(handler->memoryStack + MAX_STACK_SIZE/4 - SIZE_STACK_FRAME);
 }
 
 static void configureInterrupts(void)
