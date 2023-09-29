@@ -47,6 +47,7 @@ typedef enum{
     PRIORITY_1,	  // 1
     PRIORITY_2,	  // 2
     PRIORITY_3,   // 3
+	PRIORITY_4
 }OsTaskPriorityNumber;
 
 
@@ -77,5 +78,7 @@ bool osTaskCreate(osTaskObject* handler, void* callback, OsTaskPriorityNumber pr
  * @brief Initialization pendSV exception with lowest priority possible.
  */
 void osStart(void);
+void osIdleTask(void);
+
 
 #endif // INC_OSKERNEL_H_

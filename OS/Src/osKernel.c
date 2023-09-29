@@ -37,8 +37,11 @@ static osKernelObject osKernel = {
 
 };
 
-/* ================== Private functions declaration ================= */
+osTaskObject idleTask; // idle task object
 
+
+/* ================== Private functions declaration ================= */
+static void initIdleTask(void);
 static uint32_t getNextContext(uint32_t currentStaskPointer);
 static void scheduler(void);
 static void initializeTask(osTaskObject* handler, void* callback, OsTaskPriorityNumber priority);  // adding prioriry
@@ -79,7 +82,7 @@ void osStart(void)
 	     *
 	     */
 	configureInterrupts();
-
+	initIdleTask();
     osKernel.running = false;
     osKernel.currentTask = NULL;
     osKernel.nextTask = NULL;
@@ -89,6 +92,24 @@ void osStart(void)
     NVIC_EnableIRQ(SysTick_IRQn);
 }
 
+static void initIdleTask(void)  {
+	idleTask.memoryStack[MAX_STACK_SIZE/4 - XPSR_REG_POSITION] = XPSR_VALUE;
+	idleTask.memoryStack[MAX_STACK_SIZE/4 - PC_REG_POSTION] = (uint32_t)osIdleTask;
+	idleTask.memoryStack[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE;
+	idleTask.stackPointer = (uint32_t) (idleTask.memoryStack + MAX_STACK_SIZE/4 - SIZE_STACK_FRAME);
+
+
+	idleTask.entryPoint = osIdleTask;
+	idleTask.taskPriority = PRIORITY_4;
+	idleTask.taskId = 0xFF;
+	idleTask.taskStatus = OS_TASK_READY;
+}
+__attribute__((weak)) void osIdleTask(void)
+{
+    while(1)
+    {
+    }
+}
 /* ================ Private functions implementation ================ */
 
 /**
@@ -159,6 +180,8 @@ static void initializeTask(osTaskObject* handler, void* callback,OsTaskPriorityN
 
 static void configureInterrupts(void)
 {
+    // disable interrupts STick Pendsv
+
     NVIC_DisableIRQ(SysTick_IRQn);
     NVIC_DisableIRQ(PendSV_IRQn);
 
