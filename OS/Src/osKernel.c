@@ -23,8 +23,11 @@ typedef struct
     osTaskObject*   listTask[MAX_NUMBER_TASK];                              // Lista de tareas.
     osTaskObject*   currentTask;                                            // Tarea actual en ejecución.
     osTaskObject*   nextTask;                                               // Próxima tarea a ejecutarse.
+
+
     uint8_t         countTask;                                              // Número de tareas creadas.
     bool            running;                                                // Estado de la tarea, verdadero si está en ejecución, falso en caso contrario.
+    uint8_t*		tasksPriories[PRIORITIES_QUANTITY];
 }osKernelObject;
 
 /* ================== Private variables declaration ================= */
@@ -33,7 +36,9 @@ static osKernelObject osKernel = {
 		.currentTask= NULL,
 		.nextTask 	= NULL,
 		.countTask 	= 0,
-		.running 	=false
+		.running 	= false,
+		.tasksPriories = {NULL}
+
 
 };
 
@@ -46,7 +51,7 @@ static void initIdleTask(void);
 static uint32_t getNextContext(uint32_t currentStaskPointer);
 static void scheduler(void);
 static void initializeTask(osTaskObject* handler, void* callback, OsTaskPriorityNumber priority);  // adding prioriry
-static void configureInterrupts(void);  //--AQUI--
+static void configureInterrupts(void);
 /* ================= Public functions implementation ================ */
 
 bool osTaskCreate(osTaskObject* handler, void* callback, OsTaskPriorityNumber priority)
@@ -163,6 +168,8 @@ static void scheduler(void)
     uint8_t index = 0;
 
     // Is the first time that operating system execute? Yes, so I start with Task1
+
+
     if (!osKernel.running) {
         osKernel.currentTask = osKernel.listTask[0];
     }

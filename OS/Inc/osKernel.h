@@ -47,7 +47,8 @@ typedef enum{
     PRIORITY_1,	  // 1
     PRIORITY_2,	  // 2
     PRIORITY_3,   // 3
-	PRIORITY_4
+	PRIORITY_4,	  // 4
+	PRIORITIES_QUANTITY // size of enum
 }OsTaskPriorityNumber;
 
 
