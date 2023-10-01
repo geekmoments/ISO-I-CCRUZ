@@ -33,6 +33,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define PRIORIDAD_0		0
+#define PRIORIDAD_1		1
+#define PRIORIDAD_3		3
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -43,24 +46,28 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-osTaskObject osTask1;
-osTaskObject osTask2;
-osTaskObject osTask3;
-osTaskObject osTask4;
+osTaskObject task1Obj;
+osTaskObject task2Obj;
+osTaskObject task3Obj;
+osTaskObject task4Obj;
+
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-static void task1(void);
-static void task2(void);
-static void task3(void);
+
+void task1(void);
+void task2(void);
+void task3(void);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+uint32_t k = 0;
+uint32_t i = 0;
 /* USER CODE END 0 */
 
 /**
@@ -70,6 +77,7 @@ static void task3(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+	exceptionType returnExcep;
 
   /* USER CODE END 1 */
 
@@ -92,13 +100,26 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
+  typedef struct {
+      osTaskObject* taskHandler;
+      void* taskCallback;
+      OsTaskPriorityLevel priority;
+  } TaskInfo;
 
-  osTaskCreate(&osTask1, task1, PRIORITY_1);
-  osTaskCreate(&osTask2, task2, PRIORITY_0);    /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  osTaskCreate(&osTask3, task3,PRIORITY_2);
+  TaskInfo tasks[] = {
+      {&task1Obj, task1, PRIORITY_4},
+      {&task2Obj, task2, PRIORITY_1},
+      {&task3Obj, task3, PRIORITY_2}
+  };
+
+  for (uint8_t i = 0; i < sizeof(tasks) / sizeof(TaskInfo); i++) {
+      returnExcep = osTaskInit(tasks[i].taskHandler, tasks[i].taskCallback, tasks[i].priority);
+      if (returnExcep != OK_CODE) {
+          Error_Handler();
+      }
+  }
+
+
 
   osStart();
 
@@ -170,34 +191,36 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-static void task1(void)
+void task1(void)
 {
-    uint32_t i = 0;
+
 
     while(1)
-    {
-        i++;
+    {	osDelay(10000);
+    i++;
     }
 }
 
-static void task2(void)
+void task2(void)
 {
     uint32_t j = 0;
 
     while(1)
     {
-        j++;
+		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
+		osDelay(2000);
+
     }
 }
 
-static void task3(void)
+void task3(void)
 {
-    uint32_t k = 0;
 
     while(1)
-    {
-        k++;
-    }
+     {
+   	osDelay(7000);
+       k++;
+     }
 }
 /* USER CODE END 4 */
 

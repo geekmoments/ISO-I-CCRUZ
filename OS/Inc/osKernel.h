@@ -1,85 +1,110 @@
+
+
 #ifndef INC_OSKERNEL_H_
 #define INC_OSKERNEL_H_
 
-#include <stdint.h>
-#include <stdbool.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define MAX_NUMBER_TASK         8U          // Defines maximum 8 task and idle
-#define MAX_STACK_SIZE          256U        // Defines maximum stack size for a task.
-#define MAX_NUMBER_PRIORITY     4U          // maximum task priority.
+/* Includes ------------------------------------------------------------------*/
+#include "stm32f4xx_hal.h"
 
-#define SYSTICK_PERIOD_MS       1U          // Systick period time in mili-second.
-#define SIZE_STACK_FRAME        17U         // Size stack frame
-#define SYSTICK_PERIOD_MS       1U          // Systick period ms
+/* Private includes ----------------------------------------------------------*/
+#include "stdint.h"
+#include "core_cm4.h"
+#include "cmsis_gcc.h"
+#include <assert.h>
 
 
+/* Exported macro ------------------------------------------------------------*/
+#define MAX_TASKS            8U
+#define MAX_STACK_SIZE       256U
+#define MAX_PRIORITY         4U          // MAX_STACK_SIZE Defines the maximum amount of priority.
+#define MAX_TASK_NAME_CHAR   10
+#define STACK_FRAME_SIZE     17
+#define OS_SYSTICK_TICK         1000        // In milliseconds
+
+/* Bits positions on Stack Frame */
 #define XPSR_VALUE              1 << 24     // xPSR.T = 1
 #define EXEC_RETURN_VALUE       0xFFFFFFF9  // EXEC_RETURN value. Return to thread mode with MSP, not use FPU
-#define XPSR_REG_POSITION       1U
-#define PC_REG_POSTION          2U
-#define LR_REG_POSTION          3U
-#define R12_REG_POSTION         4U
-#define R3_REG_POSTION          5U
-#define R2_REG_POSTION          6U
-#define R1_REG_POSTION          7U
-#define R0_REG_POSTION          8U
-#define LR_PREV_VALUE_POSTION   9U
-#define R4_REG_POSTION          10U
-#define R5_REG_POSTION          11U
-#define R6_REG_POSTION          12U
-#define R7_REG_POSTION          13U
-#define R8_REG_POSTION          14U
-#define R9_REG_POSTION          15U
-#define R10_REG_POSTION         16U
-#define R11_REG_POSTION         17U
+#define XPSR_REG_POSITION       1
+#define PC_REG_POSTION          2
+#define LR_REG_POSTION          3
+#define R12_REG_POSTION         4
+#define R3_REG_POSTION          5
+#define R2_REG_POSTION          6
+#define R1_REG_POSTION          7
+#define R0_REG_POSTION          8
+#define LR_PREV_VALUE_POSTION   9
+#define R4_REG_POSTION          10
+#define R5_REG_POSTION          11
+#define R6_REG_POSTION          12
+#define R7_REG_POSTION          13
+#define R8_REG_POSTION          14
+#define R9_REG_POSTION          15
+#define R10_REG_POSTION         16
+#define R11_REG_POSTION         17
 
-/* Possible task status */
-typedef enum
-{
-    OS_TASK_READY,      // 0Ready state
-    OS_TASK_RUNNING,    // 1Running state
-    OS_TASK_BLOCK,      // 2Blocked state
-    OS_TASK_SUSPEND     // 3Suspended state
-}osTaskStatusType;
+
 
 typedef enum{
-    PRIORITY_0,   // 0
-    PRIORITY_1,	  // 1
-    PRIORITY_2,	  // 2
-    PRIORITY_3,   // 3
-	PRIORITY_4,	  // 4
-	PRIORITIES_QUANTITY // size of enum
-}OsTaskPriorityNumber;
+    OK_CODE          =  0,
+    ERROR_CODE       = -1,
+    OS_ERROR_CODE    = -2,
+}exceptionType;
 
 
-typedef struct
-{
-    uint32_t             memoryStack[MAX_STACK_SIZE/4];   // *
-    uint32_t             stackPointer;               	 //  *
-    void*                entryPoint;                 	 //  *
-    OsTaskPriorityNumber taskPriority;					 //  *
-    uint8_t              taskId;                         // Task ID, it is a number started in 0
-    osTaskStatusType     taskStatus;                     // Status task.
-    uint32_t			 tickCounter;
+typedef enum{
+    OS_STATUS_RUNNING   = 0,
+    OS_STATUS_RESET     = 1,
+    OS_STATUS_STOPPED   = 2,
+}OsStatus;
 
+
+typedef enum{
+    OS_TASK_RUNNING     = 0,
+    OS_TASK_READY       = 1,
+    OS_TASK_BLOCKED     = 2,
+    OS_TASK_SUSPENDED   = 3,
+}osTaskStatusType;
+
+
+typedef enum{
+    PRIORITY_1    = 0,                // Highest Priority
+    PRIORITY_2    = 1,
+    PRIORITY_3    = 2,
+    PRIORITY_4    = 3,                // Less Priority
+}OsTaskPriorityLevel;
+
+
+typedef struct{
+    uint32_t TaskMemoryStack[MAX_STACK_SIZE/4];    // Memory Size
+    uint32_t taskStackPointer;                   // Store the task SP
+    void* taskEntryPoint;                   // Entry point for the task
+    osTaskStatusType taskExecStatus;        // Task current execution status
+    OsTaskPriorityLevel taskPriority;       // Task priority (Not in used for now)
+    uint32_t taskID;                             // Task ID
+    char* taskName[MAX_TASK_NAME_CHAR];  // Task name in string
+    uint32_t delay;
 }osTaskObject;
 
 
-/**
- * @brief Create task.
- *
- * @param[in,out]   handler     Data structure of task.
- * @param[in]       callback    Function executed on task
- *
- * @return Return true if task was success or false in otherwise.
- */
-bool osTaskCreate(osTaskObject* handler, void* callback, OsTaskPriorityNumber priority);
+exceptionType osTaskInit(osTaskObject* taskHandler, void* taskCallback, OsTaskPriorityLevel priority);
 
-/**
- * @brief Initialization pendSV exception with lowest priority possible.
- */
-void osStart(void);
-void osIdleTask(void);
+exceptionType osStart(void);
 
 
-#endif // INC_OSKERNEL_H_
+void osDelayAndCount(const uint32_t tick);
+
+void osSysTickHook(void);
+__attribute__((weak)) void osReturnTaskHook(void);
+__attribute__((weak)) void osErrorHook(void* caller);
+__attribute__((weak)) void osIdleTask(void);
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __OS_CORE_H__ */
