@@ -1,12 +1,12 @@
 #include "../../OS/Inc/osKernel.h"
 
-// Definición de una tarea especial llamada "idle" y contador de tareas creadas
+// Definition of a special task called "idle" and counter of created tasks
 
 osTaskObject idle;
 uint8_t osTasksCreated = 0;
 
 
-// Estructura que almacena información del kernel del sistema operativo
+//Structure that stores operating system kernel information
 
 typedef struct {
     uint32_t osLastError;               // Último error del sistema
@@ -21,45 +21,49 @@ typedef struct {
 static osKernelObject OsKernel;
 
 
-// Declaración de funciones
+//=== Function declaration
 
 static void scheduler(void);
 static uint32_t getNextContext(uint32_t currentStaskPointer);
 void taskByPriority(uint8_t n);
 void manageTaskDelays(void);
+//=== end declaration
 
 
-
-// Inicialización de una tarea
+// Initializing a task  Step I
 
 exceptionType osTaskInit(osTaskObject* taskHandler, void* taskCallback, OsTaskPriorityLevel priority)
 {
+	//==== *variableInitialization*  on taskInit===
     static uint8_t osTaskCount = 0;
 
     assert(taskCallback != NULL);
     assert(taskHandler != NULL);
-
-    if (osTaskCount == 0)
+    //=== end *variableInitialization* taskInit===
+    if (osTaskCount == 0) //-- if is the first time, initialize array with NUll
     {
         for (uint8_t i = 0; i < MAX_TASKS - 1; i++)
         {
             OsKernel.listTask[i] = NULL;
         }
-    }
-    else if (osTaskCount >= MAX_TASKS - 1)
+    }					//end if
+    else if (osTaskCount >= MAX_TASKS - 1) // --- if there is more task than the max value, return error
     {
         return ERROR_CODE;
     }
+    //== end else if
 
-    taskHandler->TaskMemoryStack[MAX_STACK_SIZE/4 - XPSR_REG_POSITION] = XPSR_VALUE;
-    taskHandler->TaskMemoryStack[MAX_STACK_SIZE/4 - PC_REG_POSTION] = (uint32_t)taskCallback;
-    taskHandler->TaskMemoryStack[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE;
+    //===initialization of *taskObject*
+    taskHandler->TaskMemoryStack[MAX_STACK_SIZE/4 - XPSR_REG_POSITION] = XPSR_VALUE;//1 << 24     // xPSR.T = 1
+    taskHandler->TaskMemoryStack[MAX_STACK_SIZE/4 - PC_REG_POSTION] = (uint32_t)taskCallback; // address
+    taskHandler->TaskMemoryStack[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE; // 0xFFFFFFF9
     taskHandler->taskStackPointer = (uint32_t)(taskHandler->TaskMemoryStack + MAX_STACK_SIZE/4 - STACK_FRAME_SIZE);
     taskHandler->taskEntryPoint = taskCallback;
     taskHandler->taskExecStatus = OS_TASK_READY;
     taskHandler->taskPriority = priority;
+    //===end initialization of *taskObject*
 
-    OsKernel.listTask[osTaskCount] = taskHandler;
+    OsKernel.listTask[osTaskCount] = taskHandler; // -- storage pointer object handler
     taskHandler->taskID = osTaskCount;
     osTaskCount++;
 
@@ -67,29 +71,38 @@ exceptionType osTaskInit(osTaskObject* taskHandler, void* taskCallback, OsTaskPr
 }
 
 
-// Inicio del sistema operativo
+// Operating system startup Step II
 
 exceptionType osStart(void)
 {
-    exceptionType initResult = OK_CODE;
-
+    exceptionType initResult = OK_CODE; // error manage variable
+    //== iterate and count valid addresses in the list
     for (uint8_t i = 0; i < MAX_TASKS - 1; i++)
     {
         if (NULL != OsKernel.listTask[i]) osTasksCreated++;
     }
+
+    // == order tasks first high priority tasks
     taskByPriority(osTasksCreated);
-    initResult = osTaskInit(&idle, osIdleTask, PRIORITY_4);
+    // == end order
+
+    // idle tasks initialization
+    initResult = osTaskInit(&idle, osIdleTask, PRIORITY_IDLE); // high value of priority is the most low priority
+
     if (initResult != OK_CODE) return ERROR_CODE;
 
     NVIC_DisableIRQ(SysTick_IRQn);
     NVIC_DisableIRQ(PendSV_IRQn);
 
+    // initialization Os
     OsKernel.osStatus = OS_STATUS_STOPPED;
     OsKernel.osCurrTaskCallback = NULL;
     OsKernel.osNextTaskCallback = NULL;
+    // end initialization
 
-    NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
+    NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS) - 1);// set low priority
 
+    // update and setup clock
     SystemCoreClockUpdate();
     SysTick_Config(SystemCoreClock / OS_SYSTICK_TICK);
 
@@ -122,7 +135,7 @@ static uint32_t getNextContext(uint32_t currentStaskPointer)
 
     return OsKernel.osCurrTaskCallback->taskStackPointer;
 }
-// Función de planificación de tareas
+// Task scheduling function Step
 
 static void scheduler(void)
 {
@@ -248,33 +261,35 @@ __attribute__ ((naked)) void PendSV_Handler(void)
 		    /* Se hace un branch indirect con el valor de LR que es nuevamente EXEC_RETURN */
 		    __ASM volatile ("bx lr");
 }
+ //==== except by systick timer Step IV
 
 void SysTick_Handler(void)
 {
-    scheduler();
+    scheduler(); //first we execute the schedule in the SystickHandler
     osSysTickHook();
     SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
     __ISB();
     __DSB();
 }
-// Función para ordenar las tareas por prioridad
+// Function to sort tasks by priority
 
-void taskByPriority(uint8_t n)
+void taskByPriority(uint8_t n) // basic algorithm for ascending order
 {
-    for (uint8_t i = 0; i < n - 1; i++)
+    for (uint8_t i = 0; i < n - 1; i++) // iterate index tasks
     {
         uint8_t minIndex = i;
 
-        for (uint8_t j = i + 1; j < n; j++)
+        for (uint8_t j = i + 1; j < n; j++) // from the second
         {
-            if (OsKernel.listTask[j]->taskPriority < OsKernel.listTask[minIndex]->taskPriority)
+            if (OsKernel.listTask[j]->taskPriority < OsKernel.listTask[minIndex]->taskPriority)//compare priorities
             {
                 minIndex = j;
             }
         }
 
-        if (minIndex != i)
+        if (minIndex != i)// if the value is less
         {
+        	// change position of task --- high priority first position
             osTaskObject *temp = OsKernel.listTask[i];
             OsKernel.listTask[i] = OsKernel.listTask[minIndex];
             OsKernel.listTask[minIndex] = temp;

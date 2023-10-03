@@ -107,7 +107,7 @@ int main(void)
   } TaskInfo;
 
   TaskInfo tasks[] = {
-      {&task1Obj, task1, PRIORITY_4},
+      {&task1Obj, task1, PRIORITY_3},
       {&task2Obj, task2, PRIORITY_1},
       {&task3Obj, task3, PRIORITY_2}
   };

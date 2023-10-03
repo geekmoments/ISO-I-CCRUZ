@@ -26,7 +26,7 @@ extern "C" {
 #define OS_SYSTICK_TICK         1000        // In milliseconds
 
 /* Bits positions on Stack Frame */
-#define XPSR_VALUE              1 << 24     // xPSR.T = 1
+#define XPSR_VALUE              1 << 24     // xPSR thumb = 1
 #define EXEC_RETURN_VALUE       0xFFFFFFF9  // EXEC_RETURN value. Return to thread mode with MSP, not use FPU
 #define XPSR_REG_POSITION       1
 #define PC_REG_POSTION          2
@@ -74,7 +74,7 @@ typedef enum{
     PRIORITY_1    = 0,                // Highest Priority
     PRIORITY_2    = 1,
     PRIORITY_3    = 2,
-    PRIORITY_4    = 3,                // Less Priority
+    PRIORITY_IDLE    = 100,                // Less Priority
 }OsTaskPriorityLevel;
 
 
