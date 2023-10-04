@@ -148,7 +148,6 @@ static void scheduler(void)
         return;
     }
 
-    manageTaskDelays(); // manage and update ticks counter
 
     uint8_t firstReadyTaskIndex = osTasksCreated;
     // iterate task list and check status
@@ -266,6 +265,8 @@ __attribute__ ((naked)) void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
     scheduler(); //first we execute the schedule in the SystickHandler
+    manageTaskDelays(); // manage and update ticks counter
+
     osSysTickHook();
     SCB->ICSR = SCB_ICSR_PENDSVSET_Msk; // config pendSV for contex change
     __ISB(); // for complete
@@ -320,7 +321,6 @@ void manageTaskDelays(void)
 
 void osDelay(const uint32_t tick)
 {
-    NVIC_DisableIRQ(SysTick_IRQn);
 
     osTaskObject *task = NULL;
 
@@ -343,7 +343,6 @@ void osDelay(const uint32_t tick)
     __ISB();
     __DSB();
 
-    NVIC_EnableIRQ(SysTick_IRQn);
 }
 
 
