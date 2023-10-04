@@ -9,13 +9,11 @@ uint8_t osTasksCreated = 0;
 //Structure that stores operating system kernel information
 
 typedef struct {
-    uint32_t osLastError;               // Último error del sistema
     OsStatus osStatus;                  // Estado actual del sistema operativo
     uint32_t osScheduleExec;            // Bandera de ejecución del planificador
     osTaskObject* osCurrentTaskCallback;   // Tarea actual
     osTaskObject* osNextTaskCallback;   // Próxima tarea a ejecutar
     osTaskObject* osListTask[MAX_TASKS];  // Lista de tareas
-    osTaskObject* osTaskPriorityList[MAX_TASKS];  // Lista de tareas ordenadas por prioridad
 } osKernelObject;
 
 static osKernelObject OsKernel;
@@ -141,7 +139,7 @@ static uint32_t getNextContext(uint32_t currentStaskPointer)
 static void scheduler(void)
 {
     static uint8_t osTaskIndex = 0;
-    osTaskStatusType taskStatus;
+    osTaskStatusType taskStatus; // temp variableOsKernel.osListTask[taskIterator]->taskExecStatus
 
     if (OsKernel.osStatus != OS_STATUS_RUNNING)
     {
@@ -152,7 +150,7 @@ static void scheduler(void)
     manageTaskDelays(); // manage and update ticks counter
 
     uint8_t firstReadyTaskIndex = osTasksCreated;
-
+    // iterate task list and check status
     for (uint8_t taskIterator = 0; taskIterator < osTasksCreated; taskIterator++)
     {
         taskStatus = OsKernel.osListTask[taskIterator]->taskExecStatus;
