@@ -113,7 +113,7 @@ int main(void)
   };
 
   for (uint8_t i = 0; i < sizeof(tasks) / sizeof(TaskInfo); i++) {
-      returnExcep = osTaskInit(tasks[i].taskHandler, tasks[i].taskCallback, tasks[i].priority);
+      returnExcep = osTaskCreate(tasks[i].taskHandler, tasks[i].taskCallback, tasks[i].priority);
       if (returnExcep != OK_CODE) {
           Error_Handler();
       }

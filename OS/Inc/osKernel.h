@@ -90,7 +90,7 @@ typedef struct{
 }osTaskObject;
 
 
-exceptionType osTaskInit(osTaskObject* taskHandler, void* taskCallback, OsTaskPriorityLevel priority);
+exceptionType osTaskCreate(osTaskObject* taskHandler, void* taskCallback, OsTaskPriorityLevel priority);
 
 exceptionType osStart(void);
 

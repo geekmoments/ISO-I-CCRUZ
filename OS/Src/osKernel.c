@@ -12,9 +12,9 @@ typedef struct {
     uint32_t osLastError;               // Último error del sistema
     OsStatus osStatus;                  // Estado actual del sistema operativo
     uint32_t osScheduleExec;            // Bandera de ejecución del planificador
-    osTaskObject* osCurrTaskCallback;   // Tarea actual
+    osTaskObject* osCurrentTaskCallback;   // Tarea actual
     osTaskObject* osNextTaskCallback;   // Próxima tarea a ejecutar
-    osTaskObject* listTask[MAX_TASKS];  // Lista de tareas
+    osTaskObject* osListTask[MAX_TASKS];  // Lista de tareas
     osTaskObject* osTaskPriorityList[MAX_TASKS];  // Lista de tareas ordenadas por prioridad
 } osKernelObject;
 
@@ -32,7 +32,7 @@ void manageTaskDelays(void);
 
 // Initializing a task  Step I
 
-exceptionType osTaskInit(osTaskObject* taskHandler, void* taskCallback, OsTaskPriorityLevel priority)
+exceptionType osTaskCreate(osTaskObject* taskHandler, void* taskCallback, OsTaskPriorityLevel priority)
 {
 	//==== *variableInitialization*  on taskInit===
     static uint8_t osTaskCount = 0;
@@ -44,7 +44,7 @@ exceptionType osTaskInit(osTaskObject* taskHandler, void* taskCallback, OsTaskPr
     {
         for (uint8_t i = 0; i < MAX_TASKS - 1; i++)
         {
-            OsKernel.listTask[i] = NULL;
+            OsKernel.osListTask[i] = NULL;
         }
     }					//end if
     else if (osTaskCount >= MAX_TASKS - 1) // --- if there is more task than the max value, return error
@@ -61,9 +61,10 @@ exceptionType osTaskInit(osTaskObject* taskHandler, void* taskCallback, OsTaskPr
     taskHandler->taskEntryPoint = taskCallback;
     taskHandler->taskExecStatus = OS_TASK_READY;
     taskHandler->taskPriority = priority;
+    taskHandler->delay = 0;
     //===end initialization of *taskObject*
 
-    OsKernel.listTask[osTaskCount] = taskHandler; // -- storage pointer object handler
+    OsKernel.osListTask[osTaskCount] = taskHandler; // -- storage pointer object handler
     taskHandler->taskID = osTaskCount;
     osTaskCount++;
 
@@ -79,7 +80,7 @@ exceptionType osStart(void)
     //== iterate and count valid addresses in the list
     for (uint8_t i = 0; i < MAX_TASKS - 1; i++)
     {
-        if (NULL != OsKernel.listTask[i]) osTasksCreated++;
+        if (NULL != OsKernel.osListTask[i]) osTasksCreated++;
     }
 
     // == order tasks first high priority tasks
@@ -87,7 +88,7 @@ exceptionType osStart(void)
     // == end order
 
     // idle tasks initialization
-    initResult = osTaskInit(&idle, osIdleTask, PRIORITY_IDLE); // high value of priority is the most low priority
+    initResult = osTaskCreate(&idle, osIdleTask, PRIORITY_IDLE); // high value of priority is the most low priority
 
     if (initResult != OK_CODE) return ERROR_CODE;
 
@@ -96,7 +97,7 @@ exceptionType osStart(void)
 
     // initialization Os
     OsKernel.osStatus = OS_STATUS_STOPPED;
-    OsKernel.osCurrTaskCallback = NULL;
+    OsKernel.osCurrentTaskCallback = NULL;
     OsKernel.osNextTaskCallback = NULL;
     // end initialization
 
@@ -118,24 +119,24 @@ static uint32_t getNextContext(uint32_t currentStaskPointer)
 {
     if (OsKernel.osStatus != OS_STATUS_RUNNING)
     {
-        OsKernel.osCurrTaskCallback->taskExecStatus = OS_TASK_RUNNING;
+        OsKernel.osCurrentTaskCallback->taskExecStatus = OS_TASK_RUNNING;
         OsKernel.osStatus = OS_STATUS_RUNNING;
-        return OsKernel.osCurrTaskCallback->taskStackPointer;
+        return OsKernel.osCurrentTaskCallback->taskStackPointer;
     }
 
-    OsKernel.osCurrTaskCallback->taskStackPointer = currentStaskPointer;
-    if (OsKernel.osCurrTaskCallback->delay == 0 || OsKernel.osCurrTaskCallback->taskExecStatus != OS_TASK_BLOCKED)
+    OsKernel.osCurrentTaskCallback->taskStackPointer = currentStaskPointer;
+    if (OsKernel.osCurrentTaskCallback->delay == 0 || OsKernel.osCurrentTaskCallback->taskExecStatus != OS_TASK_BLOCKED)
     {
-        OsKernel.osCurrTaskCallback->taskExecStatus = OS_TASK_READY;
+        OsKernel.osCurrentTaskCallback->taskExecStatus = OS_TASK_READY;
     }
 
 
-    OsKernel.osCurrTaskCallback = OsKernel.osNextTaskCallback;
-    OsKernel.osCurrTaskCallback->taskExecStatus = OS_TASK_RUNNING;
+    OsKernel.osCurrentTaskCallback = OsKernel.osNextTaskCallback;
+    OsKernel.osCurrentTaskCallback->taskExecStatus = OS_TASK_RUNNING;
 
-    return OsKernel.osCurrTaskCallback->taskStackPointer;
+    return OsKernel.osCurrentTaskCallback->taskStackPointer;
 }
-// Task scheduling function Step
+// Task scheduling function Step IV
 
 static void scheduler(void)
 {
@@ -144,17 +145,17 @@ static void scheduler(void)
 
     if (OsKernel.osStatus != OS_STATUS_RUNNING)
     {
-        OsKernel.osCurrTaskCallback = OsKernel.listTask[0];
+        OsKernel.osCurrentTaskCallback = OsKernel.osListTask[0];
         return;
     }
 
-    manageTaskDelays();
+    manageTaskDelays(); // manage and update ticks counter
 
     uint8_t firstReadyTaskIndex = osTasksCreated;
 
     for (uint8_t taskIterator = 0; taskIterator < osTasksCreated; taskIterator++)
     {
-        taskStatus = OsKernel.listTask[taskIterator]->taskExecStatus;
+        taskStatus = OsKernel.osListTask[taskIterator]->taskExecStatus;
 
         switch (taskStatus)
         {
@@ -163,7 +164,7 @@ static void scheduler(void)
                 if (osTaskIndex == osTasksCreated - 1)
                 {
                     osTaskIndex = 0;
-                    OsKernel.osNextTaskCallback = OsKernel.listTask[osTaskIndex];
+                    OsKernel.osNextTaskCallback = OsKernel.osListTask[osTaskIndex];
                 }
             }
             break;
@@ -175,7 +176,7 @@ static void scheduler(void)
             {
                 if (taskIterator > osTaskIndex)
                 {
-                    OsKernel.osNextTaskCallback = OsKernel.listTask[taskIterator];
+                    OsKernel.osNextTaskCallback = OsKernel.osListTask[taskIterator];
                     osTaskIndex = taskIterator;
                     return;
                 }
@@ -198,15 +199,15 @@ static void scheduler(void)
     // seleccionamos la primera tarea READY encontrada antes.
     if (firstReadyTaskIndex < osTasksCreated)
     {
-        OsKernel.osNextTaskCallback = OsKernel.listTask[firstReadyTaskIndex];
+        OsKernel.osNextTaskCallback = OsKernel.osListTask[firstReadyTaskIndex];
         osTaskIndex = firstReadyTaskIndex;
     }
     else
     {
         // Todas las tareas están bloqueadas, seleccionamos la tarea especial.
-        if (OsKernel.osCurrTaskCallback != OsKernel.listTask[osTasksCreated])
+        if (OsKernel.osCurrentTaskCallback != OsKernel.osListTask[osTasksCreated])
         {
-            OsKernel.osNextTaskCallback = OsKernel.listTask[osTasksCreated];
+            OsKernel.osNextTaskCallback = OsKernel.osListTask[osTasksCreated];
             osTaskIndex = osTasksCreated;
         }
     }
@@ -267,9 +268,9 @@ void SysTick_Handler(void)
 {
     scheduler(); //first we execute the schedule in the SystickHandler
     osSysTickHook();
-    SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
-    __ISB();
-    __DSB();
+    SCB->ICSR = SCB_ICSR_PENDSVSET_Msk; // config pendSV for contex change
+    __ISB(); // for complete
+    __DSB(); // actions
 }
 // Function to sort tasks by priority
 
@@ -281,7 +282,7 @@ void taskByPriority(uint8_t n) // basic algorithm for ascending order
 
         for (uint8_t j = i + 1; j < n; j++) // from the second
         {
-            if (OsKernel.listTask[j]->taskPriority < OsKernel.listTask[minIndex]->taskPriority)//compare priorities
+            if (OsKernel.osListTask[j]->taskPriority < OsKernel.osListTask[minIndex]->taskPriority)//compare priorities
             {
                 minIndex = j;
             }
@@ -290,9 +291,9 @@ void taskByPriority(uint8_t n) // basic algorithm for ascending order
         if (minIndex != i)// if the value is less
         {
         	// change position of task --- high priority first position
-            osTaskObject *temp = OsKernel.listTask[i];
-            OsKernel.listTask[i] = OsKernel.listTask[minIndex];
-            OsKernel.listTask[minIndex] = temp;
+            osTaskObject *temp = OsKernel.osListTask[i];
+            OsKernel.osListTask[i] = OsKernel.osListTask[minIndex];
+            OsKernel.osListTask[minIndex] = temp;
         }
     }
 }
@@ -304,7 +305,7 @@ void manageTaskDelays(void)
 
     for (uint8_t i = 0; i < osTasksCreated; i++)
      {
-         osTaskObject *task = OsKernel.listTask[i];
+         osTaskObject *task = OsKernel.osListTask[i];
 
          if (task->taskExecStatus == OS_TASK_BLOCKED && task->delay > 0)
          {
@@ -326,9 +327,9 @@ void osDelay(const uint32_t tick)
 
     for (uint8_t i = 0; i < osTasksCreated; i++)
     {
-        if (OsKernel.listTask[i]->taskExecStatus == OS_TASK_RUNNING)
+        if (OsKernel.osListTask[i]->taskExecStatus == OS_TASK_RUNNING)
         {
-            task = OsKernel.listTask[i];
+            task = OsKernel.osListTask[i];
             break;
         }
     }
