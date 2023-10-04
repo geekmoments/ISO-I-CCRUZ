@@ -10,7 +10,7 @@ typedef struct
     union {
         struct {
             bool status;  // Estado del semáforo binario
-            task* taskSemaphore; // Tarea que hace uso del semáforo
+         //   task* taskSemaphore; // Tarea que hace uso del semáforo
         } binary;
         struct {
             uint8_t counter; // Contador del semáforo
@@ -39,7 +39,7 @@ void osSemaphoreInit(osSemaphoreObject* semaphore, bool isBinary, uint8_t maxCou
  * @return Returns true if the semaphore could be taken.
  */
 //bool osSemaphoreTake(osSemaphoreObject* semaphore);
-void osSemaphoreTake(osSemaphore* semaphore, uint32_t timeout);
+//void osSemaphoreTake(osSemaphore* semaphore, uint32_t timeout);
 
 /**
  * @brief Give semaphore.

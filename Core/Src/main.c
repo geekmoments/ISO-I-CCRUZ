@@ -103,7 +103,7 @@ int main(void)
   typedef struct {
       osTaskObject* taskHandler;
       void* taskCallback;
-      OsTaskPriorityLevel priority;
+      osPriorityType priority;
   } TaskInfo;
 
   TaskInfo tasks[] = {
@@ -113,7 +113,7 @@ int main(void)
   };
 
   for (uint8_t i = 0; i < sizeof(tasks) / sizeof(TaskInfo); i++) {
-      returnExcep = osTaskCreate(tasks[i].taskHandler, tasks[i].taskCallback, tasks[i].priority);
+      returnExcep = osTaskCreate(tasks[i].taskHandler, tasks[i].priority, tasks[i].taskCallback);
       if (returnExcep != OK_CODE) {
           Error_Handler();
       }

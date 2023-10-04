@@ -75,7 +75,7 @@ typedef enum{
     PRIORITY_2    = 1,
     PRIORITY_3    = 2,
     PRIORITY_IDLE    = 100,                // Less Priority
-}OsTaskPriorityLevel;
+}osPriorityType;
 
 
 typedef struct{
@@ -83,14 +83,14 @@ typedef struct{
     uint32_t taskStackPointer;                   // Store the task SP
     void* taskEntryPoint;                   // Entry point for the task
     osTaskStatusType taskExecStatus;        // Task current execution status
-    OsTaskPriorityLevel taskPriority;       // Task priority (Not in used for now)
+    osPriorityType taskPriority;       // Task priority (Not in used for now)
     uint32_t taskID;                             // Task ID
     char* taskName[MAX_TASK_NAME_CHAR];  // Task name in string
     uint32_t taskTickCounter;
 }osTaskObject;
 
 
-exceptionType osTaskCreate(osTaskObject* taskHandler, void* taskCallback, OsTaskPriorityLevel priority);
+exceptionType osTaskCreate(osTaskObject* handler, osPriorityType priority, void* taskCallback);
 
 exceptionType osStart(void);
 

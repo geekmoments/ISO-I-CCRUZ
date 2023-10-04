@@ -9,34 +9,35 @@ uint8_t osTasksCreated = 0;
 //Structure that stores operating system kernel information
 
 typedef struct {
-    OsStatus osStatus;                  // Estado actual del sistema operativo
-    uint32_t osScheduleExec;            // Bandera de ejecución del planificador
     osTaskObject* osCurrentTaskCallback;   // Tarea actual
     osTaskObject* osNextTaskCallback;   // Próxima tarea a ejecutar
     osTaskObject* osListTask[MAX_TASKS];  // Lista de tareas
+    OsStatus osStatus;                  // Estado actual del sistema operativo
+
 } osKernelObject;
 
 static osKernelObject OsKernel;
 
 
-//=== Function declaration
+//=== Function declaration =====
+	//--- Basic functions
+	static void scheduler(void);
+	static uint32_t getNextContext(uint32_t currentStaskPointer);
 
-static void scheduler(void);
-static uint32_t getNextContext(uint32_t currentStaskPointer);
-void taskByPriority(uint8_t n);
-void manageTaskDelays(void);
+	void taskByPriority(uint8_t n);
+	void manageTaskDelays(void);
 //=== end declaration
 
 
 // Initializing a task  Step I
 
-exceptionType osTaskCreate(osTaskObject* taskHandler, void* taskCallback, OsTaskPriorityLevel priority)
+exceptionType osTaskCreate(osTaskObject* handler, osPriorityType priority, void* taskCallback)
 {
 	//==== *variableInitialization*  on taskInit===
     static uint8_t osTaskCount = 0;
 
     assert(taskCallback != NULL);
-    assert(taskHandler != NULL);
+    assert(handler != NULL);
     //=== end *variableInitialization* taskInit===
     if (osTaskCount == 0) //-- if is the first time, initialize array with NUll
     {
@@ -52,18 +53,18 @@ exceptionType osTaskCreate(osTaskObject* taskHandler, void* taskCallback, OsTask
     //== end else if
 
     //===initialization of *taskObject*
-    taskHandler->TaskMemoryStack[MAX_STACK_SIZE/4 - XPSR_REG_POSITION] = XPSR_VALUE;//1 << 24     // xPSR.T = 1
-    taskHandler->TaskMemoryStack[MAX_STACK_SIZE/4 - PC_REG_POSTION] = (uint32_t)taskCallback; // address
-    taskHandler->TaskMemoryStack[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE; // 0xFFFFFFF9
-    taskHandler->taskStackPointer = (uint32_t)(taskHandler->TaskMemoryStack + MAX_STACK_SIZE/4 - STACK_FRAME_SIZE);
-    taskHandler->taskEntryPoint = taskCallback;
-    taskHandler->taskExecStatus = OS_TASK_READY;
-    taskHandler->taskPriority = priority;
-    taskHandler->taskTickCounter = 0;
+    handler->TaskMemoryStack[MAX_STACK_SIZE/4 - XPSR_REG_POSITION] = XPSR_VALUE;//1 << 24     // xPSR.T = 1
+    handler->TaskMemoryStack[MAX_STACK_SIZE/4 - PC_REG_POSTION] = (uint32_t)taskCallback; // address
+    handler->TaskMemoryStack[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE; // 0xFFFFFFF9
+    handler->taskStackPointer = (uint32_t)(handler->TaskMemoryStack + MAX_STACK_SIZE/4 - STACK_FRAME_SIZE);
+    handler->taskEntryPoint = taskCallback;
+    handler->taskExecStatus = OS_TASK_READY;
+    handler->taskPriority = priority;
+    handler->taskTickCounter = 0;
     //===end initialization of *taskObject*
 
-    OsKernel.osListTask[osTaskCount] = taskHandler; // -- storage pointer object handler
-    taskHandler->taskID = osTaskCount;
+    OsKernel.osListTask[osTaskCount] = handler; // -- storage pointer object handler
+    handler->taskID = osTaskCount;
     osTaskCount++;
 
     return (exceptionType)OK_CODE;
@@ -86,7 +87,7 @@ exceptionType osStart(void)
     // == end order
 
     // idle tasks initialization
-    initResult = osTaskCreate(&idle, osIdleTask, PRIORITY_IDLE); // high value of priority is the most low priority
+    initResult = osTaskCreate(&idle, PRIORITY_IDLE, osIdleTask); // high value of priority is the most low priority
 
     if (initResult != OK_CODE) return ERROR_CODE;
 

@@ -6,7 +6,7 @@
  */
 #include <osSemaphore.h>
 
-
+/*
 void osSemaphoreInit(osSemaphore* semaphore, bool isBinary, uint8_t maxCount) {
     semaphore->isBinary = isBinary;
     if (isBinary) {
@@ -17,3 +17,4 @@ void osSemaphoreInit(osSemaphore* semaphore, bool isBinary, uint8_t maxCount) {
         semaphore->data.counter.max = maxCount;
     }
 }
+*/
