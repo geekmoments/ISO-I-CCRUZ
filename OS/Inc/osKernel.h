@@ -86,7 +86,7 @@ typedef struct{
     OsTaskPriorityLevel taskPriority;       // Task priority (Not in used for now)
     uint32_t taskID;                             // Task ID
     char* taskName[MAX_TASK_NAME_CHAR];  // Task name in string
-    uint32_t delay;
+    uint32_t taskTickCounter;
 }osTaskObject;
 
 

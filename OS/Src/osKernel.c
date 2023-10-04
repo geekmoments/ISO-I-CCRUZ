@@ -61,7 +61,7 @@ exceptionType osTaskCreate(osTaskObject* taskHandler, void* taskCallback, OsTask
     taskHandler->taskEntryPoint = taskCallback;
     taskHandler->taskExecStatus = OS_TASK_READY;
     taskHandler->taskPriority = priority;
-    taskHandler->delay = 0;
+    taskHandler->taskTickCounter = 0;
     //===end initialization of *taskObject*
 
     OsKernel.osListTask[osTaskCount] = taskHandler; // -- storage pointer object handler
@@ -125,7 +125,7 @@ static uint32_t getNextContext(uint32_t currentStaskPointer)
     }
 
     OsKernel.osCurrentTaskCallback->taskStackPointer = currentStaskPointer;
-    if (OsKernel.osCurrentTaskCallback->delay == 0 || OsKernel.osCurrentTaskCallback->taskExecStatus != OS_TASK_BLOCKED)
+    if (OsKernel.osCurrentTaskCallback->taskTickCounter == 0 || OsKernel.osCurrentTaskCallback->taskExecStatus != OS_TASK_BLOCKED)
     {
         OsKernel.osCurrentTaskCallback->taskExecStatus = OS_TASK_READY;
     }
@@ -307,10 +307,10 @@ void manageTaskDelays(void)
      {
          osTaskObject *task = OsKernel.osListTask[i];
 
-         if (task->taskExecStatus == OS_TASK_BLOCKED && task->delay > 0)
+         if (task->taskExecStatus == OS_TASK_BLOCKED && task->taskTickCounter > 0)
          {
-             task->delay--;
-             if (task->delay == 0)
+             task->taskTickCounter--;
+             if (task->taskTickCounter == 0)
              {
                  task->taskExecStatus = OS_TASK_READY;
              }
@@ -335,7 +335,7 @@ void osDelay(const uint32_t tick)
     }
 
     task->taskExecStatus = OS_TASK_BLOCKED;
-    task->delay = tick;
+    task->taskTickCounter = tick;
 
     scheduler();
 
