@@ -6,15 +6,31 @@
  */
 #include <osSemaphore.h>
 
-/*
-void osSemaphoreInit(osSemaphore* semaphore, bool isBinary, uint8_t maxCount) {
-    semaphore->isBinary = isBinary;
-    if (isBinary) {
-        semaphore->data.binary.status = false;
-        semaphore->data.binary.taskSemaphore = NULL;
-    } else {
-        semaphore->data.counter.counter = maxCount;
-        semaphore->data.counter.max = maxCount;
-    }
+
+void osSemaphoreInit(osSemaphoreObject* semaphore, const uint32_t maxCount, const uint32_t count){
+	semaphore->take=true; //  start take true always
+	semaphore->assignedTask=NULL;
 }
-*/
+
+bool osSemaphoreTake(osSemaphoreObject* semaphore){
+
+	osTaskObject* task;
+
+	task = getTask();
+	if (task->taskExecStatus == OS_TASK_RUNNING)  {
+
+
+			if(semaphore->take)  {
+				task->taskExecStatus = OS_TASK_BLOCKED;
+				semaphore->assignedTask = task;
+			}
+			else  {
+				semaphore->take		 = true;
+				return true;
+			}
+		}
+
+}
+void osSemaphoreGive(osSemaphoreObject* semaphore){
+
+}

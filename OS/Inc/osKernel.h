@@ -93,6 +93,7 @@ typedef struct{
 exceptionType osTaskCreate(osTaskObject* handler, osPriorityType priority, void* taskCallback);
 
 exceptionType osStart(void);
+osTaskObject* getTask(void);
 
 
 void osDelayAndCount(const uint32_t tick);

@@ -345,6 +345,12 @@ void osDelay(const uint32_t tick)
 
 }
 
+///====
+osTaskObject* getTask(void)  {
+	return OsKernel.osCurrentTaskCallback;
+}
+
+
 
 // Hooks débiles
 
