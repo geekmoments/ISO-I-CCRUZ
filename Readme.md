@@ -39,7 +39,7 @@ En este TP se abordan los estados de las tareas en un sistema operativo en tiemp
 En el TP3 se aborda la implementación de semáforos, que son fundamentales para la sincronización en sistemas operativos en tiempo real. Se consideran dos tipos de semáforos:
 
 - **Semaforos Binarios:** Se utilizan para controlar el acceso a recursos compartidos de forma binaria (bloqueado/desbloqueado).
-- **Semaforos Contadores:** Permiten un mayor control y asignación de recursos, ya que pueden tener un valor entero como contador.
+
 
 #### Mecanismo de Semaforo para el RTOS
 
