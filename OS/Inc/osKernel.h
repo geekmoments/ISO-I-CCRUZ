@@ -74,12 +74,12 @@ typedef enum{
     OS_VERYHIGH_PRIORITY    = 0,                // Highest Priority
     OS_HIGH_PRIORITY    = 1,
     OS_NORMAL_PRIORITY    = 2,
-    PRIORITY_IDLE    = 100,                // Less Priority
+    OS_LOW_PRIORITY    = 100,                // Less Priority
 }osPriorityType;
 
 
 typedef struct{
-    uint32_t TaskMemoryStack[MAX_STACK_SIZE/4];    // Memory Size
+    uint32_t memory[MAX_STACK_SIZE/4];    // Memory Size
     uint32_t taskStackPointer;                   // Store the task SP
     void* taskEntryPoint;                   // Entry point for the task
     osTaskStatusType taskExecStatus;        // Task current execution status

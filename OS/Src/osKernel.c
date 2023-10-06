@@ -1,5 +1,6 @@
 #include "../../OS/Inc/osKernel.h"
 
+#define IDLEPRIORIRY 100
 // Definition of a special task called "idle" and counter of created tasks
 
 osTaskObject idle;
@@ -53,10 +54,10 @@ bool osTaskCreate(osTaskObject* handler, osPriorityType priority, void* taskCall
     //== end else if
 
     //===initialization of *taskObject*
-    handler->TaskMemoryStack[MAX_STACK_SIZE/4 - XPSR_REG_POSITION] = XPSR_VALUE;//1 << 24     // xPSR.T = 1
-    handler->TaskMemoryStack[MAX_STACK_SIZE/4 - PC_REG_POSTION] = (uint32_t)taskCallback; // address
-    handler->TaskMemoryStack[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE; // 0xFFFFFFF9
-    handler->taskStackPointer = (uint32_t)(handler->TaskMemoryStack + MAX_STACK_SIZE/4 - STACK_FRAME_SIZE);
+    handler->memory[MAX_STACK_SIZE/4 - XPSR_REG_POSITION] = XPSR_VALUE;//1 << 24     // xPSR.T = 1
+    handler->memory[MAX_STACK_SIZE/4 - PC_REG_POSTION] = (uint32_t)taskCallback; // address
+    handler->memory[MAX_STACK_SIZE/4 - LR_PREV_VALUE_POSTION] = EXEC_RETURN_VALUE; // 0xFFFFFFF9
+    handler->taskStackPointer = (uint32_t)(handler->memory + MAX_STACK_SIZE/4 - STACK_FRAME_SIZE);
     handler->taskEntryPoint = taskCallback;
     handler->taskExecStatus = OS_TASK_READY;
     handler->taskPriority = priority;
@@ -87,7 +88,7 @@ bool osStart(void)
     // == end order
 
     // idle tasks initialization
-    initResult = osTaskCreate(&idle, PRIORITY_IDLE, osIdleTask); // high value of priority is the most low priority
+    initResult = osTaskCreate(&idle, IDLEPRIORIRY, osIdleTask); // high value of priority is the most low priority
 
     if (initResult != true) return false;
 
