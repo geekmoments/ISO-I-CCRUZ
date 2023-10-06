@@ -94,6 +94,8 @@ exceptionType osTaskCreate(osTaskObject* handler, osPriorityType priority, void*
 
 exceptionType osStart(void);
 osTaskObject* getTask(void);
+void osCallSche(void);
+
 
 
 void osDelayAndCount(const uint32_t tick);

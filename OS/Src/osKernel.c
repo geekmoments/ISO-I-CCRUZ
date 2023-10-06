@@ -351,6 +351,13 @@ osTaskObject* getTask(void)  {
 }
 
 
+//==
+
+void osCallSche(void){
+
+    scheduler();
+
+}
 
 // Hooks débiles
 

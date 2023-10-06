@@ -17,20 +17,29 @@ bool osSemaphoreTake(osSemaphoreObject* semaphore){
 	osTaskObject* task;
 
 	task = getTask();
-	if (task->taskExecStatus == OS_TASK_RUNNING)  {
 
+	if(task->taskExecStatus == OS_TASK_RUNNING){
+		while(semaphore->take)
+		{
+				task->taskExecStatus=OS_TASK_BLOCKED;
+				semaphore->assignedTask=task;
+				osCallSche();
 
-			if(semaphore->take)  {
-				task->taskExecStatus = OS_TASK_BLOCKED;
-				semaphore->assignedTask = task;
-			}
-			else  {
-				semaphore->take		 = true;
-				return true;
-			}
 		}
+		semaphore->take=true;
+		return semaphore->take;
+	}
+
 
 }
 void osSemaphoreGive(osSemaphoreObject* semaphore){
+	osTaskObject* task;
 
+	task = os_getTareaActual();
+
+
+	if (task->taskExecStatus == OS_TASK_RUNNING && semaphore->take)  {
+		semaphore->take = false;
+		semaphore->assignedTask->taskExecStatus = OS_TASK_READY;
+	}
 }
