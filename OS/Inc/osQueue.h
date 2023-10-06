@@ -7,7 +7,7 @@
 #include "../../OS/Inc/osKernel.h"
 #include <string.h>
 
-#define MAX_SIZE_QUEUE  128     // Maximum buffer size of the queue
+#define MAX_SIZE_QUEUE  128     // Maximum buffer
 
 typedef struct
 {

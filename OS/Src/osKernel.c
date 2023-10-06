@@ -31,7 +31,7 @@ static osKernelObject OsKernel;
 
 // Initializing a task  Step I
 
-exceptionType osTaskCreate(osTaskObject* handler, osPriorityType priority, void* taskCallback)
+bool osTaskCreate(osTaskObject* handler, osPriorityType priority, void* taskCallback)
 {
 	//==== *variableInitialization*  on taskInit===
     static uint8_t osTaskCount = 0;
@@ -48,7 +48,7 @@ exceptionType osTaskCreate(osTaskObject* handler, osPriorityType priority, void*
     }					//end if
     else if (osTaskCount >= MAX_TASKS - 1) // --- if there is more task than the max value, return error
     {
-        return ERROR_CODE;
+        return false;
     }
     //== end else if
 
@@ -67,15 +67,15 @@ exceptionType osTaskCreate(osTaskObject* handler, osPriorityType priority, void*
     handler->taskID = osTaskCount;
     osTaskCount++;
 
-    return (exceptionType)OK_CODE;
+    return true;
 }
 
 
 // Operating system startup Step II
 
-exceptionType osStart(void)
+bool osStart(void)
 {
-    exceptionType initResult = OK_CODE; // error manage variable
+    bool initResult = true; // error manage variable
     //== iterate and count valid addresses in the list
     for (uint8_t i = 0; i < MAX_TASKS - 1; i++)
     {
@@ -89,7 +89,7 @@ exceptionType osStart(void)
     // idle tasks initialization
     initResult = osTaskCreate(&idle, PRIORITY_IDLE, osIdleTask); // high value of priority is the most low priority
 
-    if (initResult != OK_CODE) return ERROR_CODE;
+    if (initResult != true) return false;
 
     NVIC_DisableIRQ(SysTick_IRQn);
     NVIC_DisableIRQ(PendSV_IRQn);

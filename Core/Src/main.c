@@ -23,7 +23,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "../../OS/Inc/osKernel.h"
-
+#include <stdlib.h>
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -77,7 +78,7 @@ uint32_t i = 0;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	exceptionType returnExcep;
+	bool returnExcep;
 
   /* USER CODE END 1 */
 
@@ -107,14 +108,14 @@ int main(void)
   } TaskInfo;
 
   TaskInfo tasks[] = {
-      {&task1Obj, task1, PRIORITY_3},
-      {&task2Obj, task2, PRIORITY_1},
-      {&task3Obj, task3, PRIORITY_2}
+      {&task1Obj, task1, OS_NORMAL_PRIORITY},
+      {&task2Obj, task2, OS_VERYHIGH_PRIORITY},
+      {&task3Obj, task3, OS_HIGH_PRIORITY}
   };
 
   for (uint8_t i = 0; i < sizeof(tasks) / sizeof(TaskInfo); i++) {
       returnExcep = osTaskCreate(tasks[i].taskHandler, tasks[i].priority, tasks[i].taskCallback);
-      if (returnExcep != OK_CODE) {
+      if (returnExcep != true) {
           Error_Handler();
       }
   }

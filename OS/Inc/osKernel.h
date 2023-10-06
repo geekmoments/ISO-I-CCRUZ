@@ -15,8 +15,8 @@ extern "C" {
 #include "core_cm4.h"
 #include "cmsis_gcc.h"
 #include <assert.h>
-
-
+#include <stdlib.h>
+#include <stdbool.h>
 /* Exported macro ------------------------------------------------------------*/
 #define MAX_TASKS            8U
 #define MAX_STACK_SIZE       256U
@@ -71,9 +71,9 @@ typedef enum{
 
 
 typedef enum{
-    PRIORITY_1    = 0,                // Highest Priority
-    PRIORITY_2    = 1,
-    PRIORITY_3    = 2,
+    OS_VERYHIGH_PRIORITY    = 0,                // Highest Priority
+    OS_HIGH_PRIORITY    = 1,
+    OS_NORMAL_PRIORITY    = 2,
     PRIORITY_IDLE    = 100,                // Less Priority
 }osPriorityType;
 
@@ -90,9 +90,9 @@ typedef struct{
 }osTaskObject;
 
 
-exceptionType osTaskCreate(osTaskObject* handler, osPriorityType priority, void* taskCallback);
+bool osTaskCreate(osTaskObject* handler, osPriorityType priority, void* taskCallback);
 
-exceptionType osStart(void);
+bool osStart(void);
 osTaskObject* getTask(void);
 void osCallSche(void);
 
