@@ -23,6 +23,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "../../OS/Inc/osKernel.h"
+#include "osQueue.h"
+
 #include <stdlib.h>
 #include <stdbool.h>
 /* USER CODE END Includes */
@@ -37,6 +39,9 @@
 #define PRIORIDAD_0		0
 #define PRIORIDAD_1		1
 #define PRIORIDAD_3		3
+
+#define MAX_DATA_SIZE 32
+#define NUM_ITEMS 5
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -47,10 +52,19 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
+osQueueObject myQueue;
+
 osTaskObject task1Obj;
 osTaskObject task2Obj;
 osTaskObject task3Obj;
 osTaskObject task4Obj;
+
+typedef struct {
+    char message[MAX_DATA_SIZE];
+    int value;
+} DataPacket;
+
 
 
 /* USER CODE END PV */
@@ -62,6 +76,7 @@ void SystemClock_Config(void);
 void task1(void);
 void task2(void);
 void task3(void);
+osQueueObject queue;
 
 /* USER CODE END PFP */
 
@@ -69,6 +84,8 @@ void task3(void);
 /* USER CODE BEGIN 0 */
 uint32_t k = 0;
 uint32_t i = 0;
+
+
 /* USER CODE END 0 */
 
 /**
@@ -119,6 +136,9 @@ int main(void)
           Error_Handler();
       }
   }
+
+
+  osQueueInit(&queue, sizeof(uint32_t));
 
 
 
@@ -197,14 +217,18 @@ void task1(void)
 
 
     while(1)
-    {	osDelay(10000);
-    i++;
+    {
+    	if(osQueueSend(&queue, &i, 10))
+    		{
+    			osDelay(500);
+    			i++;
+    		}
     }
 }
 
 void task2(void)
 {
-    uint32_t j = 0;
+    //uint32_t j = 0;
 
     while(1)
     {
@@ -217,11 +241,16 @@ void task2(void)
 void task3(void)
 {
 
-    while(1)
-     {
-   	osDelay(7000);
-       k++;
-     }
+	uint32_t l = 0;
+	uint32_t m = 0;
+	  while(1)
+	  {
+		if(osQueueReceive(&queue, &m, 10))
+		{
+			osDelay(1000);
+		}
+		l++;
+	  }
 }
 /* USER CODE END 4 */
 
