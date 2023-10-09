@@ -24,6 +24,8 @@
 /* USER CODE BEGIN Includes */
 #include "../../OS/Inc/osKernel.h"
 #include "osQueue.h"
+#include "osSemaphore.h"
+#include "osIRQ.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -59,11 +61,8 @@ osTaskObject task1Obj;
 osTaskObject task2Obj;
 osTaskObject task3Obj;
 osTaskObject task4Obj;
+osTaskObject task5Obj;
 
-typedef struct {
-    char message[MAX_DATA_SIZE];
-    int value;
-} DataPacket;
 
 
 
@@ -72,19 +71,23 @@ typedef struct {
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+void toggleLed();
+
+void taskTriggerIRQ(void);
 
 void task1(void);
 void task2(void);
 void task3(void);
-osQueueObject queue;
 
+osSemaphoreObject semaphore;
+osQueueObject queue;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 uint32_t k = 0;
 uint32_t i = 0;
-
+uint32_t w = 0;
 
 /* USER CODE END 0 */
 
@@ -137,8 +140,13 @@ int main(void)
       }
   }
 
-
+  returnExcep = osTaskCreate(&task5Obj, OS_NORMAL_PRIORITY, taskTriggerIRQ);
+    if (returnExcep != true) Error_Handler();
   osQueueInit(&queue, sizeof(uint32_t));
+
+  uint8_t pin = USER_Btn_Pin;
+
+  osRegisterIRQ(EXTI15_10_IRQn, toggleLed, &pin);
 
 
 
@@ -232,7 +240,7 @@ void task2(void)
 
     while(1)
     {
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
+		//2HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
 		osDelay(2000);
 
     }
@@ -242,16 +250,32 @@ void task3(void)
 {
 
 	uint32_t l = 0;
-	uint32_t m = 0;
+	uint32_t c = 0;
 	  while(1)
 	  {
-		if(osQueueReceive(&queue, &m, 10))
+		if(osQueueReceive(&queue, &c, 10))
 		{
 			osDelay(1000);
 		}
 		l++;
 	  }
 }
+void taskTriggerIRQ(void)
+{
+	while(1)
+	{
+		osDelay(1000);
+		HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+	}
+}
+
+void toggleLed()
+{
+
+	HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+    __HAL_GPIO_EXTI_CLEAR_IT(USER_Btn_Pin);
+}
+
 /* USER CODE END 4 */
 
 /**

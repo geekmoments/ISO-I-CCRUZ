@@ -31,7 +31,7 @@ bool osQueueSend(osQueueObject* queue, const void* data, const uint32_t timeout)
     if (queue->currentSize >= MAX_SIZE_QUEUE)
     {
     	//==
-    	task->taskExecStatus=OS_TASK_BLOCKED;
+    	task->taskExecStatus=OS_TASK_BLOCK;
     	//==
     	osCallSche();
         return false;
@@ -80,7 +80,7 @@ bool osQueueReceive(osQueueObject* queue, void* buffer, const uint32_t timeout)
 	}
 	else
 	{
-	    task->taskExecStatus = OS_TASK_BLOCKED;
+	    task->taskExecStatus = OS_TASK_BLOCK;
 	    osCallSche();
 	    return false;
 	}

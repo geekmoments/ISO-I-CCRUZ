@@ -21,7 +21,7 @@ bool osSemaphoreTake(osSemaphoreObject* semaphore){
 	if(task->taskExecStatus == OS_TASK_RUNNING){
 		while(semaphore->take)
 		{
-				task->taskExecStatus=OS_TASK_BLOCKED;
+				task->taskExecStatus=OS_TASK_BLOCK;
 				semaphore->assignedTask=task;
 				osCallSche();
 

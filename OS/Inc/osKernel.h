@@ -59,13 +59,15 @@ typedef enum{
     OS_STATUS_RUNNING   = 0,
     OS_STATUS_RESET     = 1,
     OS_STATUS_STOPPED   = 2,
+	OS_STATUS_IRQ		= 3,
+
 }OsStatus;
 
 
 typedef enum{
-    OS_TASK_RUNNING     = 0,
-    OS_TASK_READY       = 1,
-    OS_TASK_BLOCKED     = 2,
+    OS_TASK_READY       = 0,
+    OS_TASK_RUNNING     = 1,
+    OS_TASK_BLOCK     = 2,
     OS_TASK_SUSPENDED   = 3,
 }osTaskStatusType;
 
@@ -96,9 +98,21 @@ bool osStart(void);
 osTaskObject* getTask(void);
 void osCallSche(void);
 
-
-
 void osDelayAndCount(const uint32_t tick);
+OsStatus osGetStatus(void); //---
+void osSetStatus(OsStatus s);//---
+
+
+/**
+ * @brief Declare the end of the critical section.
+ */
+void osEnterCriticalSection(void);
+
+/**
+ * @brief Declare the beginning of the critical section.
+ */
+void osExitCriticalSection(void);
+
 
 void osSysTickHook(void);
 __attribute__((weak)) void osReturnTaskHook(void);
