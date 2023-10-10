@@ -4,15 +4,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "../../OS/Inc/osKernel.h"
-#include <string.h>
 
 #define MAX_SIZE_QUEUE  128     // Maximum buffer
 
 typedef struct
 {
 	uint8_t *data[MAX_SIZE_QUEUE];
-	osTaskObject* assignedTaskQ;
+	//osTaskObject* assignedTaskQ;
 	uint32_t startIndex;
 	uint32_t endIndex;
 	uint32_t dataSize;

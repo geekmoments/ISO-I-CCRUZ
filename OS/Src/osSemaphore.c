@@ -5,41 +5,42 @@
  *      Author: cesarcruz
  */
 #include <osSemaphore.h>
+#include "osKernel.h"
 
-
+// Inicializa un objeto de semáforo
 void osSemaphoreInit(osSemaphoreObject* semaphore, const uint32_t maxCount, const uint32_t count){
-	semaphore->take=true; //  start take true always
-	semaphore->assignedTask=NULL;
+    semaphore->maxCount = maxCount; // Establece el valor máximo permitido
+    semaphore->count = count;       // Establece el contador inicial
+    semaphore->lockedFlag = false;  // Inicialmente no bloqueado
 }
 
+// Intenta tomar el semáforo
 bool osSemaphoreTake(osSemaphoreObject* semaphore){
 
-	osTaskObject* task;
+    osEnterCriticalSection(); // Entra en la sección crítica
 
-	task = getTask();
+    if (semaphore->lockedFlag == true)
+    {
+        blockTaskFromSem(semaphore); // Bloquea la tarea actual si el semáforo ya está tomado
+        osExitCriticalSection();    // Sale de la sección crítica
+        return false;               // Devuelve false indicando que el semáforo no se tomó
+    }
+    else
+    {
+        semaphore->lockedFlag = true; // Marca el semáforo como tomado
+    }
 
-	if(task->taskExecStatus == OS_TASK_RUNNING){
-		while(semaphore->take)
-		{
-				task->taskExecStatus=OS_TASK_BLOCK;
-				semaphore->assignedTask=task;
-				osCallSche();
-
-		}
-		semaphore->take=true;
-		return semaphore->take;
-	}
-
-
+    osExitCriticalSection(); // Sale de la sección crítica
+    return true;             // Devuelve true indicando que el semáforo se tomó con éxito
 }
+
+// Libera el semáforo
 void osSemaphoreGive(osSemaphoreObject* semaphore){
-	osTaskObject* task;
+    osEnterCriticalSection(); // Entra en la sección crítica
 
-	task = os_getTareaActual();
+    semaphore->lockedFlag = false; // Marca el semáforo como liberado
 
+    checkBlockedTaskFromSem(semaphore); // Verifica si hay tareas bloqueadas esperando el semáforo
 
-	if (task->taskExecStatus == OS_TASK_RUNNING && semaphore->take)  {
-		semaphore->take = false;
-		semaphore->assignedTask->taskExecStatus = OS_TASK_READY;
-	}
+    osExitCriticalSection(); // Sale de la sección crítica
 }

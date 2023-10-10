@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "../../OS/Inc/osKernel.h"
+#include "osKernel.h"
 #include "osQueue.h"
 #include "osSemaphore.h"
 #include "osIRQ.h"
@@ -78,6 +78,8 @@ void taskTriggerIRQ(void);
 void task1(void);
 void task2(void);
 void task3(void);
+void task4(void);
+void task5(void);
 
 osSemaphoreObject semaphore;
 osQueueObject queue;
@@ -88,7 +90,8 @@ osQueueObject queue;
 uint32_t k = 0;
 uint32_t i = 0;
 uint32_t w = 0;
-
+uint32_t j = 0;
+uint32_t m = 0;
 /* USER CODE END 0 */
 
 /**
@@ -128,9 +131,11 @@ int main(void)
   } TaskInfo;
 
   TaskInfo tasks[] = {
-      {&task1Obj, task1, OS_NORMAL_PRIORITY},
+      {&task1Obj, task1, OS_VERYHIGH_PRIORITY},
       {&task2Obj, task2, OS_VERYHIGH_PRIORITY},
-      {&task3Obj, task3, OS_HIGH_PRIORITY}
+      {&task3Obj, task3, OS_LOW_PRIORITY},
+	  {&task4Obj, task4, OS_LOW_PRIORITY},
+	  {&task5Obj, task5, OS_NORMAL_PRIORITY}
   };
 
   for (uint8_t i = 0; i < sizeof(tasks) / sizeof(TaskInfo); i++) {
@@ -140,11 +145,11 @@ int main(void)
       }
   }
 
-  returnExcep = osTaskCreate(&task5Obj, OS_NORMAL_PRIORITY, taskTriggerIRQ);
-    if (returnExcep != true) Error_Handler();
+
+  osSemaphoreInit(&semaphore, 1, 0);
   osQueueInit(&queue, sizeof(uint32_t));
 
-  uint8_t pin = USER_Btn_Pin;
+  uint16_t pin = USER_Btn_Pin;
 
   osRegisterIRQ(EXTI15_10_IRQn, toggleLed, &pin);
 
@@ -224,41 +229,62 @@ void task1(void)
 {
 
 
-    while(1)
-    {
-    	if(osQueueSend(&queue, &i, 10))
-    		{
-    			osDelay(500);
-    			i++;
-    		}
-    }
+
+	  while(1)
+	  {
+		if(osQueueSend(&queue, &i, 10))
+		{
+			osDelay(500);
+			i++;
+		}
+	  }
 }
 
 void task2(void)
 {
-    //uint32_t j = 0;
 
-    while(1)
-    {
-		//2HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
-		osDelay(2000);
+	  while(1)
+	  {
+			osSemaphoreGive(&semaphore);
+			osDelay(1000);
 
-    }
+		    j++;
+
+	  }
 }
 
 void task3(void)
 {
 
-	uint32_t l = 0;
-	uint32_t c = 0;
+	uint32_t k = 0;
 	  while(1)
 	  {
-		if(osQueueReceive(&queue, &c, 10))
-		{
-			osDelay(1000);
-		}
-		l++;
+       osSemaphoreTake(&semaphore);
+	    k++;
+		osDelay(1000);
+
 	  }
+}
+
+void task4(void)
+{
+	uint32_t b = 0;
+  while(1)
+  {
+	if(osQueueReceive(&queue, &b, 10))
+	{
+		osDelay(1000);
+	}
+  }
+}
+void task5(void)
+{
+
+  while(1)
+  {
+    osDelay(1000);
+    m++;
+  }
 }
 void taskTriggerIRQ(void)
 {

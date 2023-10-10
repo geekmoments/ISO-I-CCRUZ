@@ -3,16 +3,17 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "../../OS/Inc/osKernel.h"
 
 
 
-	typedef struct
-	{
-		osTaskObject* assignedTask;
-		bool take;
+typedef struct
+{
+	uint32_t  maxCount;
+	uint32_t  count;
+	bool  lockedFlag;
 
-	}osSemaphoreObject;
+
+}osSemaphoreObject;
 
 void osSemaphoreInit(osSemaphoreObject* semaphore, const uint32_t maxCount, const uint32_t count);
 bool osSemaphoreTake(osSemaphoreObject* semaphore);

@@ -1,33 +1,83 @@
+
+/**
+ * @file osKernel.c
+ * @brief Funciones principales del sistema operativo.
+ */
 #include "../../OS/Inc/osKernel.h"
 
 #define IDLEPRIORIRY 100
-// Definition of a special task called "idle" and counter of created tasks
 
 osTaskObject idle;
 uint8_t osTasksCreated = 0;
+uint8_t currentTaskIndex = 0;
 
-
-//Structure that stores operating system kernel information
-
+/**
+ * @struct osKernelObject
+ * @brief Estructura que contiene información del sistema operativo.
+ */
 typedef struct {
-    osTaskObject* osCurrentTaskCallback;   // Tarea actual
-    osTaskObject* osNextTaskCallback;   // Próxima tarea a ejecutar
-    osTaskObject* osListTask[MAX_TASKS];  // Lista de tareas
-    OsStatus osStatus;                  // Estado actual del sistema operativo
+
+    	osTaskObject* osCurrentTaskCallback;    ///< Tarea actual
+        osTaskObject* osNextTaskCallback;       ///< Próxima tarea a ejecutar
+        osTaskObject* osListTask[MAX_TASKS];    ///< Lista de tareas
+        OsStatus osStatus;                      ///< Estado actual del sistema operativo
+
+//---CR
+
+	osTaskObject* osTaskPriorityList[MAX_TASKS];///< Lista de prioridades de tareas
+
+
+//---
+
 
 } osKernelObject;
 
 static osKernelObject OsKernel;
 
 
-//=== Function declaration =====
-	//--- Basic functions
+// Declaración de funciones
+/**
+ * @brief Planificador de tareas.
+ */
 	static void scheduler(void);
+	/**
+	 * @brief Obtiene el contexto de la siguiente tarea.
+	 * @param currentStackPointer Puntero de pila actual.
+	 * @return Puntero de pila de la siguiente tarea.
+	 */
 	static uint32_t getNextContext(uint32_t currentStaskPointer);
+	/**
+	 * @brief Ordena las tareas por prioridad.
+	 * @param task Cantidad de tareas a ordenar.
+	 */
 
-	void taskByPriority(uint8_t n);
+	void taskByPriority(uint8_t task);
+	/**
+	 * @brief Gestiona las demoras de las tareas bloqueadas.
+	 */
 	void manageTaskDelays(void);
-//=== end declaration
+	/**
+	 * @brief Encuentra la tarea bloqueada por un semáforo.
+	 * @param semaphore Puntero al semáforo.
+	 * @return Puntero a la tarea bloqueada o NULL si no se encuentra.
+	 */
+	osTaskObject* findBlockedTaskFromSemaphore(osSemaphoreObject *semaphore);
+	/**
+	 * @brief Encuentra la tarea bloqueada por una cola.
+	 * @param sender Indica si la tarea fue bloqueada por cola llena (0) o cola vacía (1).
+	 * @return Puntero a la tarea bloqueada o NULL si no se encuentra.
+	 */
+	osTaskObject* findBlockedTaskFromQueue(uint8_t sender);
+	/**
+	 * @brief Obtiene la tarea en ejecución.
+	 * @return Puntero a la tarea en ejecución o NULL si no hay ninguna.
+	 */
+
+	osTaskObject* getRunningTask(void);
+	/**
+	 * @brief Realiza un cambio de contexto forzado.
+	 */
+	void osYield(void);
 
 
 // Initializing a task  Step I
@@ -74,9 +124,8 @@ bool osTaskCreate(osTaskObject* handler, osPriorityType priority, void* taskCall
 
 // Operating system startup Step II
 
-bool osStart(void)
+void osStart(void)
 {
-    bool initResult = true; // error manage variable
     //== iterate and count valid addresses in the list
     for (uint8_t i = 0; i < MAX_TASKS - 1; i++)
     {
@@ -88,9 +137,7 @@ bool osStart(void)
     // == end order
 
     // idle tasks initialization
-    initResult = osTaskCreate(&idle, IDLEPRIORIRY, osIdleTask); // high value of priority is the most low priority
-
-    if (initResult != true) return false;
+    osTaskCreate(&idle, IDLEPRIORIRY, osIdleTask);
 
     NVIC_DisableIRQ(SysTick_IRQn);
     NVIC_DisableIRQ(PendSV_IRQn);
@@ -99,49 +146,61 @@ bool osStart(void)
     OsKernel.osStatus = OS_STATUS_STOPPED;
     OsKernel.osCurrentTaskCallback = NULL;
     OsKernel.osNextTaskCallback = NULL;
-    // end initialization
 
-    NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS) - 1);// set low priority
+    NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
 
-    // update and setup clock
     SystemCoreClockUpdate();
     SysTick_Config(SystemCoreClock / OS_SYSTICK_TICK);
 
     NVIC_EnableIRQ(PendSV_IRQn);
     NVIC_EnableIRQ(SysTick_IRQn);
 
-    return initResult;
 }
 
 // Function para obtener el siguiente contexto
 
-static uint32_t getNextContext(uint32_t currentStaskPointer)
+static uint32_t getNextContext(uint32_t currentStackPointer)
 {
+    // Si es la primera vez que se ejecuta el sistema operativo
     if (OsKernel.osStatus != OS_STATUS_RUNNING)
     {
+        // Establece el estado de la tarea actual como en ejecución
         OsKernel.osCurrentTaskCallback->taskExecStatus = OS_TASK_RUNNING;
+        // Actualiza el estado del sistema operativo a en ejecución
         OsKernel.osStatus = OS_STATUS_RUNNING;
+        // Devuelve el puntero de pila de la tarea actual
         return OsKernel.osCurrentTaskCallback->taskStackPointer;
     }
 
-    OsKernel.osCurrentTaskCallback->taskStackPointer = currentStaskPointer;
-    if (OsKernel.osCurrentTaskCallback->taskTickCounter == 0 || OsKernel.osCurrentTaskCallback->taskExecStatus != OS_TASK_BLOCK)
+    // Almacena el último puntero de pila utilizado en la tarea actual y cambia su estado a lista para ejecutar
+    OsKernel.osCurrentTaskCallback->taskStackPointer = currentStackPointer;
+
+    // Verifica si la tarea actual estaba bloqueada y tiene un contador de tiempo pendiente
+    if (OsKernel.osCurrentTaskCallback->taskTickCounter != 0 && OsKernel.osCurrentTaskCallback->taskExecStatus == OS_TASK_BLOCK)
     {
+        // la tarea permanece bloqueada
+    }
+    else
+    {
+        // Establece el estado de la tarea actual como lista para ejecutar
         OsKernel.osCurrentTaskCallback->taskExecStatus = OS_TASK_READY;
     }
 
-
+    // Cambia a la siguiente tarea en la cola y cambia su estado a en ejecución
     OsKernel.osCurrentTaskCallback = OsKernel.osNextTaskCallback;
     OsKernel.osCurrentTaskCallback->taskExecStatus = OS_TASK_RUNNING;
 
+    // Devuelve el puntero de pila de la tarea actual (que ahora está en ejecución)
     return OsKernel.osCurrentTaskCallback->taskStackPointer;
 }
-// Task scheduling function Step IV
 
+// Task scheduling function Step IV
 static void scheduler(void)
 {
     static uint8_t osTaskIndex = 0;
-    osTaskStatusType taskStatus; // temp variableOsKernel.osListTask[taskIterator]->taskExecStatus
+	static uint8_t status[MAX_TASKS];
+	osTaskStatusType taskStatus;
+
 
     if (OsKernel.osStatus != OS_STATUS_RUNNING)
     {
@@ -150,187 +209,186 @@ static void scheduler(void)
     }
 
 
-    uint8_t firstReadyTaskIndex = osTasksCreated;
-    // iterate task list and check status
-    for (uint8_t taskIterator = 0; taskIterator < osTasksCreated; taskIterator++)
-    {
-        taskStatus = OsKernel.osListTask[taskIterator]->taskExecStatus;
+	uint8_t n = 0;
 
-        switch (taskStatus)
-        {
-            case OS_TASK_RUNNING:
-            {
-                if (osTaskIndex == osTasksCreated - 1)
-                {
-                    osTaskIndex = 0;
-                    OsKernel.osNextTaskCallback = OsKernel.osListTask[osTaskIndex];
-                }
-            }
-            break;
+	for (uint8_t taskIndex = 0; taskIndex < osTasksCreated; taskIndex++)
+	{
+		if (OsKernel.osListTask[taskIndex]->taskExecStatus == OS_TASK_BLOCK)
+		{
+			n++;
+		}
+	}
 
-            case OS_TASK_SUSPENDED:
-                break;
+	if (n == osTasksCreated)
+	{
+		if (OsKernel.osCurrentTaskCallback != OsKernel.osListTask[osTasksCreated])
+		{
+			OsKernel.osNextTaskCallback = OsKernel.osListTask[osTasksCreated];
 
-            case OS_TASK_READY:
-            {
-                if (taskIterator > osTaskIndex)
-                {
-                    OsKernel.osNextTaskCallback = OsKernel.osListTask[taskIterator];
-                    osTaskIndex = taskIterator;
-                    return;
-                }
-                else if (taskIterator < firstReadyTaskIndex)
-                {
-                    firstReadyTaskIndex = taskIterator;
-                }
-            }
-            break;
+			osTaskIndex = osTasksCreated;
+		}
+		return;
+	}
 
-            case OS_TASK_BLOCK:
-            {
-                // No es necesario hacer nada para tareas bloqueadas.
-            }
-            break;
-        }
-    }
+	for (uint8_t taskIndex = 0; taskIndex < osTasksCreated; taskIndex++)
+	{
+		taskStatus = OsKernel.osListTask[taskIndex]->taskExecStatus;
+		switch(taskStatus)
+		{
+			case OS_TASK_READY:
+			{
+				if (osTasksCreated == 1 || taskIndex > osTaskIndex)
+				{
+				    OsKernel.osNextTaskCallback = OsKernel.osListTask[taskIndex];
+				    osTaskIndex = taskIndex;
+				    return;
+				}
 
-    // Si no se encontró una tarea READY o RUNNING,
-    // seleccionamos la primera tarea READY encontrada antes.
-    if (firstReadyTaskIndex < osTasksCreated)
-    {
-        OsKernel.osNextTaskCallback = OsKernel.osListTask[firstReadyTaskIndex];
-        osTaskIndex = firstReadyTaskIndex;
-    }
-    else
-    {
-        // Todas las tareas están bloqueadas, seleccionamos la tarea especial.
-        if (OsKernel.osCurrentTaskCallback != OsKernel.osListTask[osTasksCreated])
-        {
-            OsKernel.osNextTaskCallback = OsKernel.osListTask[osTasksCreated];
-            osTaskIndex = osTasksCreated;
-        }
-    }
+				for (uint8_t blockedTaskIndex = 0; blockedTaskIndex < osTasksCreated; blockedTaskIndex++)
+				{
+				    if (status[blockedTaskIndex] == 1 && OsKernel.osListTask[taskIndex]->taskExecStatus == OS_TASK_READY)
+				    {
+				        OsKernel.osNextTaskCallback = OsKernel.osListTask[taskIndex];
+				        status[blockedTaskIndex] = 0;
+				        osTaskIndex = taskIndex;
+				        return;
+				    }
+				}
+
+			}
+			break;
+			case OS_TASK_RUNNING:
+			{
+				if (osTaskIndex == osTasksCreated - 1)
+				{
+					osTaskIndex = 0;
+					OsKernel.osNextTaskCallback = OsKernel.osListTask[osTaskIndex];
+				}
+			}
+			break;
+			case OS_TASK_BLOCK:
+			{
+			    status[taskIndex] = (taskIndex <= osTaskIndex) ? 1 : 0;
+
+			}
+			break;
+			case OS_TASK_SUSPENDED: break;
+
+
+
+
+		}
+	}
+
 }
 
 
 __attribute__ ((naked)) void PendSV_Handler(void)
 {
-	  // Se entra a la seccion critica y se deshabilita las interrupciones.
-		__ASM volatile ("cpsid i");
+    // Se entra a la seccion critica y se deshabilita las interrupciones.
+	__ASM volatile ("cpsid i");
+    /**
+     * Implementación de stacking para FPU:
+     *
+     * Las tres primeras corresponden a un testeo del bit EXEC_RETURN[4]. La instruccion TST hace un
+     * AND estilo bitwise (bit a bit) entre el registro LR y el literal inmediato. El resultado de esta
+     * operacion no se guarda y los bits N y Z son actualizados. En este caso, si el bit EXEC_RETURN[4] = 0
+     * el resultado de la operacion sera cero, y la bandera Z = 1, por lo que se da la condicion EQ y
+     * se hace el push de los registros de FPU restantes
+     */
+    __ASM volatile ("tst lr, 0x10");
+    __ASM volatile ("it eq");
+    __ASM volatile ("vpusheq {s16-s31}");
 
-	    /**
-	     * Implementación de stacking para FPU:
-	     *
-	     * Las tres primeras corresponden a un testeo del bit EXEC_RETURN[4]. La instruccion TST hace un
-	     * AND estilo bitwise (bit a bit) entre el registro LR y el literal inmediato. El resultado de esta
-	     * operacion no se guarda y los bits N y Z son actualizados. En este caso, si el bit EXEC_RETURN[4] = 0
-	     * el resultado de la operacion sera cero, y la bandera Z = 1, por lo que se da la condicion EQ y
-	     * se hace el push de los registros de FPU restantes
-	     */
-	    __ASM volatile ("tst lr, 0x10");
-	    __ASM volatile ("it eq");
-	    __ASM volatile ("vpusheq {s16-s31}");
+    /**
+     * Cuando se ingresa al handler de PendSV lo primero que se ejecuta es un push para
+	 * guardar los registros R4-R11 y el valor de LR, que en este punto es EXEC_RETURN
+	 * El push se hace al reves de como se escribe en la instruccion, por lo que LR
+	 * se guarda en la posicion 9 (luego del stack frame). Como la funcion getNextContext
+	 * se llama con un branch con link, el valor del LR es modificado guardando la direccion
+	 * de retorno una vez se complete la ejecucion de la funcion
+	 * El pasaje de argumentos a getContextoSiguiente se hace como especifica el AAPCS siendo
+	 * el unico argumento pasado por RO, y el valor de retorno tambien se almacena en R0
+	 *
+	 * NOTA: El primer ingreso a este handler (luego del reset) implica que el push se hace sobre el
+	 * stack inicial, ese stack se pierde porque no hay seguimiento del MSP en el primer ingreso
+     */
+    __ASM volatile ("push {r4-r11, lr}");
+    __ASM volatile ("mrs r0, msp");
+    __ASM volatile ("bl %0" :: "i"(getNextContext));
+    __ASM volatile ("msr msp, r0");
+    __ASM volatile ("pop {r4-r11, lr}");    //Recuperados todos los valores de registros
 
-	    /**
-	     * Cuando se ingresa al handler de PendSV lo primero que se ejecuta es un push para
-		 * guardar los registros R4-R11 y el valor de LR, que en este punto es EXEC_RETURN
-		 * El push se hace al reves de como se escribe en la instruccion, por lo que LR
-		 * se guarda en la posicion 9 (luego del stack frame). Como la funcion getNextContext
-		 * se llama con un branch con link, el valor del LR es modificado guardando la direccion
-		 * de retorno una vez se complete la ejecucion de la funcion
-		 * El pasaje de argumentos a getContextoSiguiente se hace como especifica el AAPCS siendo
-		 * el unico argumento pasado por RO, y el valor de retorno tambien se almacena en R0
-		 *
-		 * NOTA: El primer ingreso a este handler (luego del reset) implica que el push se hace sobre el
-		 * stack inicial, ese stack se pierde porque no hay seguimiento del MSP en el primer ingreso
-	     */
-	    __ASM volatile ("push {r4-r11, lr}");
-	    __ASM volatile ("mrs r0, msp");
-	    __ASM volatile ("bl %0" :: "i"(getNextContext));
-	    __ASM volatile ("msr msp, r0");
-	    __ASM volatile ("pop {r4-r11, lr}");    //Recuperados todos los valores de registros
+    /**
+     * Implementación de unstacking para FPU:
+     *
+     * Habiendo hecho el cambio de contexto y recuperado los valores de los registros, es necesario
+     * determinar si el contexto tiene guardados registros correspondientes a la FPU. si este es el caso
+     * se hace el unstacking de los que se hizo PUSH manualmente.
+     */
+    __ASM volatile ("tst lr,0x10");
+    __ASM volatile ("it eq");
+    __ASM volatile ("vpopeq {s16-s31}");
 
-	    /**
-	     * Implementación de unstacking para FPU:
-	     *
-	     * Habiendo hecho el cambio de contexto y recuperado los valores de los registros, es necesario
-	     * determinar si el contexto tiene guardados registros correspondientes a la FPU. si este es el caso
-	     * se hace el unstacking de los que se hizo PUSH manualmente.
-	     */
-	    __ASM volatile ("tst lr,0x10");
-	    __ASM volatile ("it eq");
-	    __ASM volatile ("vpopeq {s16-s31}");
+    // Se sale de la seccion critica y se habilita las interrupciones.
+	__ASM volatile ("cpsie i");
 
-	    // Se sale de la seccion critica y se habilita las interrupciones.
-		__ASM volatile ("cpsie i");
+    /* Se hace un branch indirect con el valor de LR que es nuevamente EXEC_RETURN */
+    __ASM volatile ("bx lr");
 
-	    /* Se hace un branch indirect con el valor de LR que es nuevamente EXEC_RETURN */
-	    __ASM volatile ("bx lr");
 }
- //==== except by systick timer Step IV
+
 
 void SysTick_Handler(void)
 {
-    scheduler(); //first we execute the schedule in the SystickHandler
-    manageTaskDelays(); // manage and update ticks counter
+    scheduler();
+    manageTaskDelays();
 
     osSysTickHook();
-    SCB->ICSR = SCB_ICSR_PENDSVSET_Msk; // config pendSV for contex change
-    __ISB(); // for complete
-    __DSB(); // actions
+    SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+    __ISB();
+    __DSB(); //
 }
-// Function to sort tasks by priority
 
-void taskByPriority(uint8_t n) // basic algorithm for ascending order
-{
-    for (uint8_t i = 0; i < n - 1; i++) // iterate index tasks
-    {
-        uint8_t minIndex = i;
-
-        for (uint8_t j = i + 1; j < n; j++) // from the second
-        {
-            if (OsKernel.osListTask[j]->taskPriority < OsKernel.osListTask[minIndex]->taskPriority)//compare priorities
-            {
-                minIndex = j;
-            }
-        }
-
-        if (minIndex != i)// if the value is less
-        {
-        	// change position of task --- high priority first position
-            osTaskObject *temp = OsKernel.osListTask[i];
-            OsKernel.osListTask[i] = OsKernel.osListTask[minIndex];
-            OsKernel.osListTask[minIndex] = temp;
-        }
-    }
+void taskByPriority(uint8_t task) {
+	    for (uint8_t i = 0; i < task - 1; i++) {
+	        for (uint8_t j = 0; j < task - i - 1; j++) {
+	            if (OsKernel.osListTask[j]->taskPriority > OsKernel.osListTask[j + 1]->taskPriority) {
+	                OsKernel.osListTask[j] = (osTaskObject*)((uintptr_t)OsKernel.osListTask[j] ^ (uintptr_t)OsKernel.osListTask[j + 1]);
+	                OsKernel.osListTask[j + 1] = (osTaskObject*)((uintptr_t)OsKernel.osListTask[j] ^ (uintptr_t)OsKernel.osListTask[j + 1]);
+	                OsKernel.osListTask[j] = (osTaskObject*)((uintptr_t)OsKernel.osListTask[j] ^ (uintptr_t)OsKernel.osListTask[j + 1]);
+	            }
+	        }
+	    }
 }
-// Función para contar el retraso de las tareas
 
 void manageTaskDelays(void)
 {
-    osTaskObject *task = NULL;
-
     for (uint8_t i = 0; i < osTasksCreated; i++)
-     {
-         osTaskObject *task = OsKernel.osListTask[i];
+    {
+        osTaskObject *task = OsKernel.osListTask[i];
 
-         if (task->taskExecStatus == OS_TASK_BLOCK && task->taskTickCounter > 0)
-         {
-             task->taskTickCounter--;
-             if (task->taskTickCounter == 0)
-             {
-                 task->taskExecStatus = OS_TASK_READY;
-             }
-         }
-     }
+        if (task->taskExecStatus == OS_TASK_BLOCK && task->taskTickCounter > 0)
+        {
+            task->taskTickCounter--;
+
+            if (task->taskTickCounter == 0)
+            {
+                task->taskExecStatus = OS_TASK_READY;
+            }
+        }
+    }
 }
+
 // Función para bloquear una tarea durante un número de ticks
 
 void osDelay(const uint32_t tick)
 {
+    osEnterCriticalSection();
 
     osTaskObject *task = NULL;
 
+    // Busca la tarea en ejecución
     for (uint8_t i = 0; i < osTasksCreated; i++)
     {
         if (OsKernel.osListTask[i]->taskExecStatus == OS_TASK_RUNNING)
@@ -340,16 +398,140 @@ void osDelay(const uint32_t tick)
         }
     }
 
-    task->taskExecStatus = OS_TASK_BLOCK;
-    task->taskTickCounter = tick;
+    if (task != NULL)
+    {
+        // Bloquea la tarea actual y establece el contador de ticks
+        task->taskExecStatus = OS_TASK_BLOCK;
+        task->taskTickCounter = tick;
 
-    scheduler();
+        // Yieldea para permitir que otras tareas se ejecuten
+        osYield();
 
-    SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+        // Solicita una interrupción PendSV para el cambio de contexto
+        SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+    }
 
-    __ISB();
-    __DSB();
+    osExitCriticalSection();
+}
 
+//==========new Functions
+void blockTaskFromSem(osSemaphoreObject* semaphore)
+{
+    osTaskObject *task = NULL;
+    task = getRunningTask();
+    if (task != NULL)
+    {
+    	task->semaphoreTask = semaphore;
+        task->semaphoreBlocked = true;
+        task->taskExecStatus = OS_TASK_BLOCK;
+    }
+    osYield();
+}
+
+void checkBlockedTaskFromSem(osSemaphoreObject *semaphore)
+{
+    osTaskObject *task = NULL;
+    task = findBlockedTaskFromSemaphore(semaphore);
+    if (task != NULL)
+    {
+        task->taskExecStatus = OS_TASK_READY;
+        task->semaphoreBlocked = false;
+    	task->semaphoreTask = NULL;
+    }
+    osYield();
+}
+
+void blockTaskFromQueue(osQueueObject *queue, uint8_t sender)
+{
+    osTaskObject *task = NULL;
+    task = getRunningTask();
+    if (task != NULL)
+    {
+        if(sender)  task->taskBlockedByFullQueue = true;
+        else        task->taskBlockedByEmptyQueue = true;
+        if(sender)  task->queueFull  = queue;
+        else        task->queueEmpty = queue;
+        task->taskExecStatus = OS_TASK_BLOCK;
+    }
+    osYield();
+}
+
+void checkBlockedTaskFromQueue(osQueueObject *queue, uint8_t sender)
+{
+    osTaskObject *task = NULL;
+    task = findBlockedTaskFromQueue(sender);
+    if (task != NULL)
+    {
+        task->taskExecStatus = OS_TASK_READY;
+        if (sender) task->taskBlockedByEmptyQueue = false;
+        else        task->taskBlockedByFullQueue  = false;
+        if (sender) task->queueFull = NULL;
+        else        task->queueEmpty= NULL;
+    }
+    osYield();
+}
+
+osTaskObject* findBlockedTaskFromQueue(uint8_t sender)
+{
+    for (uint8_t i = 0; i < osTasksCreated; i++)
+    {
+        if( OsKernel.osListTask[i]->taskExecStatus == OS_TASK_BLOCK)
+        {
+            switch(sender)
+            {
+                case 0:
+                {
+                    if (OsKernel.osListTask[i]->taskBlockedByFullQueue == true)
+                    {
+                        return OsKernel.osListTask[i];
+                    }
+                }
+                break;
+
+                case 1:
+                {
+                    if (OsKernel.osListTask[i]->taskBlockedByEmptyQueue == true)
+                    {
+                        return OsKernel.osListTask[i];
+                    }
+                }
+                break;
+            }
+        }
+    }
+    return NULL;
+}
+
+osTaskObject* findBlockedTaskFromSemaphore(osSemaphoreObject *semaphore)
+{
+	osTaskObject *task = NULL;
+    for (uint8_t i = 0; i < osTasksCreated; i++)
+    {
+        if( OsKernel.osListTask[i]->taskExecStatus == OS_TASK_BLOCK)
+        {
+            if (OsKernel.osListTask[i]->semaphoreBlocked == true && OsKernel.osListTask[i]->semaphoreTask == semaphore)
+            {
+            	task = OsKernel.osListTask[i];
+                return task;
+            }
+        }
+    }
+    return NULL;
+}
+
+
+osTaskObject* getRunningTask(void)
+{
+    osTaskObject *task = NULL;
+    for (uint8_t i = 0; i < osTasksCreated; i++)
+    {
+        if(OsKernel.osListTask[i]->taskExecStatus == OS_TASK_RUNNING)
+        {
+            task = OsKernel.osListTask[i];
+            return task;
+        }
+    }
+    return task;
 }
 
 ///====
@@ -359,11 +541,18 @@ osTaskObject* getTask(void)  {
 
 
 //==
-
+/*
 void osCallSche(void){
 
     scheduler();
 
+}*/
+void osYield(void)
+{
+    scheduler();
+    SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+    __ISB();
+    __DSB();
 }
 OsStatus osGetStatus(void){
 	return OsKernel.osStatus;
@@ -385,7 +574,7 @@ void osExitCriticalSection(void)
 }
 
 
-// Hooks débiles
+// Hooks
 
 __attribute__((weak)) void osReturnTaskHook(void)
 {
