@@ -87,8 +87,11 @@ bool osTaskCreate(osTaskObject* handler, osPriorityType priority, void* taskCall
 	//==== *variableInitialization*  on taskInit===
     static uint8_t osTaskCount = 0;
 
-    assert(taskCallback != NULL);
-    assert(handler != NULL);
+    if (taskCallback == NULL || handler == NULL) {
+        // Manejo de error si taskCallback o handler son NULL
+        return false; // O toma otra acción de manejo de errores
+    }
+
     //=== end *variableInitialization* taskInit===
     if (osTaskCount == 0) //-- if is the first time, initialize array with NUll
     {

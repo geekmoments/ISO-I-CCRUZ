@@ -6,6 +6,7 @@
 #include <stdbool.h>
 
 #define MAX_SIZE_QUEUE  128     // Maximum buffer
+#define OS_MAX_DELAY    0xFFFFFFFF  // Macro where the queue is locked forever. It ignores the timeout variable in the implementation.
 
 typedef struct
 {

@@ -18,17 +18,12 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "osKernel.h"
-#include "osQueue.h"
-#include "osSemaphore.h"
-#include "osIRQ.h"
-
-#include <stdlib.h>
-#include <stdbool.h>
+#include "application.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,12 +33,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define PRIORIDAD_0		0
-#define PRIORIDAD_1		1
-#define PRIORIDAD_3		3
 
-#define MAX_DATA_SIZE 32
-#define NUM_ITEMS 5
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -55,43 +45,17 @@
 
 /* USER CODE BEGIN PV */
 
-osQueueObject myQueue;
-
-osTaskObject task1Obj;
-osTaskObject task2Obj;
-osTaskObject task3Obj;
-osTaskObject task4Obj;
-osTaskObject task5Obj;
-
-
-
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-void toggleLed();
-
-void taskTriggerIRQ(void);
-
-void task1(void);
-void task2(void);
-void task3(void);
-void task4(void);
-void task5(void);
-
-osSemaphoreObject semaphore;
-osQueueObject queue;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint32_t k = 0;
-uint32_t i = 0;
-uint32_t w = 0;
-uint32_t j = 0;
-uint32_t m = 0;
+
 /* USER CODE END 0 */
 
 /**
@@ -101,7 +65,6 @@ uint32_t m = 0;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	bool returnExcep;
 
   /* USER CODE END 1 */
 
@@ -123,39 +86,10 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  typedef struct {
-      osTaskObject* taskHandler;
-      void* taskCallback;
-      osPriorityType priority;
-  } TaskInfo;
 
-  TaskInfo tasks[] = {
-      {&task1Obj, task1, OS_VERYHIGH_PRIORITY},
-      {&task2Obj, task2, OS_VERYHIGH_PRIORITY},
-      {&task3Obj, task3, OS_LOW_PRIORITY},
-	  {&task4Obj, task4, OS_LOW_PRIORITY},
-	  {&task5Obj, task5, OS_NORMAL_PRIORITY}
-  };
-
-  for (uint8_t i = 0; i < sizeof(tasks) / sizeof(TaskInfo); i++) {
-      returnExcep = osTaskCreate(tasks[i].taskHandler, tasks[i].priority, tasks[i].taskCallback);
-      if (returnExcep != true) {
-          Error_Handler();
-      }
-  }
-
-
-  osSemaphoreInit(&semaphore, 1, 0);
-  osQueueInit(&queue, sizeof(uint32_t));
-
-  uint16_t pin = USER_Btn_Pin;
-
-  osRegisterIRQ(EXTI15_10_IRQn, toggleLed, &pin);
-
-
-
-  osStart();
+  applicationStart();
 
   /* USER CODE END 2 */
 
@@ -163,7 +97,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      __WFI();
 
     /* USER CODE END WHILE */
 
@@ -225,82 +158,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void task1(void)
-{
-
-
-
-	  while(1)
-	  {
-		if(osQueueSend(&queue, &i, 10))
-		{
-			osDelay(500);
-			i++;
-		}
-	  }
-}
-
-void task2(void)
-{
-
-	  while(1)
-	  {
-			osSemaphoreGive(&semaphore);
-			osDelay(1000);
-
-		    j++;
-
-	  }
-}
-
-void task3(void)
-{
-
-	uint32_t k = 0;
-	  while(1)
-	  {
-       osSemaphoreTake(&semaphore);
-	    k++;
-		osDelay(1000);
-
-	  }
-}
-
-void task4(void)
-{
-	uint32_t b = 0;
-  while(1)
-  {
-	if(osQueueReceive(&queue, &b, 10))
-	{
-		osDelay(1000);
-	}
-  }
-}
-void task5(void)
-{
-
-  while(1)
-  {
-    osDelay(1000);
-    m++;
-  }
-}
-void taskTriggerIRQ(void)
-{
-	while(1)
-	{
-		osDelay(1000);
-		HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-	}
-}
-
-void toggleLed()
-{
-
-	HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-    __HAL_GPIO_EXTI_CLEAR_IT(USER_Btn_Pin);
-}
 
 /* USER CODE END 4 */
 

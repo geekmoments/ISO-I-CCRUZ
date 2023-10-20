@@ -16,7 +16,7 @@ S_DEPS += \
 
 # Each subdirectory must supply rules for building sources it contributes
 Core/Startup/%.o: ../Core/Startup/%.s Core/Startup/subdir.mk
-	arm-none-eabi-gcc -mcpu=cortex-m4 -g3 -DDEBUG -c -I"/Users/cesarcruz/STM32CubeIDE/workspace_1.11.2/ISO-I/OS" -I"/Users/cesarcruz/STM32CubeIDE/workspace_1.11.2/ISO-I/OS/Src" -I"/Users/cesarcruz/STM32CubeIDE/workspace_1.11.2/ISO-I/OS/Inc/Port" -x assembler-with-cpp -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@" "$<"
+	arm-none-eabi-gcc -mcpu=cortex-m4 -g3 -DDEBUG -c -I"/Users/cesarcruz/STM32CubeIDE/workspace_1.11.2/ISO-I/OS" -I"/Users/cesarcruz/STM32CubeIDE/workspace_1.11.2/ISO-I/OS/Src" -I"/Users/cesarcruz/STM32CubeIDE/workspace_1.11.2/ISO-I/OS/Inc/Port" -I"/Users/cesarcruz/STM32CubeIDE/workspace_1.11.2/ISO-I/App/Inc" -x assembler-with-cpp -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@" "$<"
 
 clean: clean-Core-2f-Startup
 

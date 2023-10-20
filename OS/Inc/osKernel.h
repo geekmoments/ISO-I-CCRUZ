@@ -9,7 +9,6 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include <assert.h>
-#include <stdlib.h>
 #include <stdbool.h>
 
 #include "stm32f4xx_hal.h"
@@ -50,14 +49,6 @@ extern "C" {
 #define R9_REG_POSTION          15
 #define R10_REG_POSTION         16
 #define R11_REG_POSTION         17
-
-
-/*
-typedef enum{
-    OK_CODE          =  0,
-    ERROR_CODE       = -1,
-    OS_ERROR_CODE    = -2,
-}exceptionType*/
 
 
 typedef enum{
