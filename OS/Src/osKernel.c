@@ -21,14 +21,10 @@ typedef struct {
         osTaskObject* osNextTaskCallback;       ///< Próxima tarea a ejecutar
         osTaskObject* osListTask[MAX_TASKS];    ///< Lista de tareas
         OsStatus osStatus;                      ///< Estado actual del sistema operativo
-
 //---CR
-
-	osTaskObject* osTaskPriorityList[MAX_TASKS];///< Lista de prioridades de tareas
-
-
+        osTaskObject* osTaskPriorityList[MAX_TASKS];///< Lista de prioridades de tareas
+        bool inISRContext; // rastreamos si el SO usa sem o queue desde ISR
 //---
-
 
 } osKernelObject;
 
@@ -77,7 +73,6 @@ static osKernelObject OsKernel;
 	/**
 	 * @brief Realiza un cambio de contexto forzado.
 	 */
-	void osYield(void);
 
 
 // Initializing a task  Step I
@@ -149,7 +144,7 @@ void osStart(void)
     OsKernel.osStatus = OS_STATUS_STOPPED;
     OsKernel.osCurrentTaskCallback = NULL;
     OsKernel.osNextTaskCallback = NULL;
-
+    OsKernel.inISRContext = false;
     NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
 
     SystemCoreClockUpdate();
@@ -203,6 +198,7 @@ static void scheduler(void)
     static uint8_t osTaskIndex = 0;
 	static uint8_t status[MAX_TASKS];
 	osTaskStatusType taskStatus;
+	uint8_t numBlockedTasks = 0;
 
 
     if (OsKernel.osStatus != OS_STATUS_RUNNING)
@@ -212,17 +208,16 @@ static void scheduler(void)
     }
 
 
-	uint8_t n = 0;
 
 	for (uint8_t taskIndex = 0; taskIndex < osTasksCreated; taskIndex++)
 	{
 		if (OsKernel.osListTask[taskIndex]->taskExecStatus == OS_TASK_BLOCK)
 		{
-			n++;
+			numBlockedTasks++;
 		}
 	}
 
-	if (n == osTasksCreated)
+	if (numBlockedTasks == osTasksCreated)
 	{
 		if (OsKernel.osCurrentTaskCallback != OsKernel.osListTask[osTasksCreated])
 		{
@@ -552,6 +547,11 @@ void osCallSche(void){
 }*/
 void osYield(void)
 {
+    if (osGetStatus() == OS_STATUS_IRQ)
+    {
+        OsKernel.inISRContext = true;
+    }
+
     scheduler();
     SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
     __ISB();
@@ -565,6 +565,16 @@ void osSetStatus(OsStatus status) {
 	OsKernel.osStatus = status;
 
 }
+bool osIsInISRContext(void)//==
+{
+	return OsKernel.inISRContext;
+}
+
+void osSetInISRContext(bool val)//===
+{
+	OsKernel.inISRContext = val;
+}
+
 
 
 void osEnterCriticalSection(void)

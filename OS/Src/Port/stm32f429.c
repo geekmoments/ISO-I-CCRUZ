@@ -124,6 +124,9 @@ void osIRQHandler(osIRQnType irqType)
     osSetStatus(prevStatus);
 
     NVIC_ClearPendingIRQ(irqType);
+//===
+    osIsInISRContext() ? (osSetInISRContext(false), osYield()) : (void)0;
+
 
 }
 

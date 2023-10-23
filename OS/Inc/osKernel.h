@@ -166,6 +166,13 @@ void osExitCriticalSection(void);
 
 
 void osSysTickHook(void);
+
+void osYield(void);//===Aqui
+
+
+void osSetInISRContext(bool val);//===Aqui
+bool osIsInISRContext(void);//==Aqui
+
 __attribute__((weak)) void osReturnTaskHook(void);
 /**
  * @brief Función de manejo de retorno de error.
